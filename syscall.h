@@ -20,3 +20,7 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+#define SYS_cap_enter  22
+#define SYS_cap_new    23
+#define SYS_cap_getmode  24
+#define SYS_cap_getrights  25

@@ -22,6 +22,11 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int cap_enter(void);
+int cap_getmode(uint* modep);
+int cap_new(int fd, cap_rights_t rights);
+int cap_getrights(int fd, cap_rights_t* rights);
+
 
 // ulib.c
 int stat(char*, struct stat*);

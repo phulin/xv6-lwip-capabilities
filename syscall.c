@@ -98,6 +98,10 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_cap_enter(void);
+extern int sys_cap_getmode(void);
+extern int sys_cap_new(void);
+extern int sys_cap_getrights(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -121,6 +125,10 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_cap_enter]   sys_cap_enter,
+[SYS_cap_new]     sys_cap_new,
+[SYS_cap_getmode] sys_cap_enter,
+[SYS_cap_getrights]   sys_cap_enter,
 };
 
 void
