@@ -8,8 +8,10 @@
 #include "file.h"
 #include "fcntl.h"
 
+// Sets the current process mode to be CAPABILITY mode.
 int sys_cap_enter(void)
 {
+  proc->mode = MODE_CAP;
   return 0;
 }
 
@@ -19,7 +21,7 @@ int sys_cap_getmode(void)
 
   if(argptr(0, (void*)&mode, sizeof(*mode)) < 0)
     return -1;
-  *mode = 0; 
+  *mode = proc->mode; 
   return 0;
 }
 

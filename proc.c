@@ -69,6 +69,7 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+  p->mode = MODE_NORM;
 
   return p;
 }
@@ -145,6 +146,7 @@ fork(void)
   np->sz = proc->sz;
   np->parent = proc;
   *np->tf = *proc->tf;
+  np->mode = proc->mode;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -446,7 +448,7 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    cprintf("%d %s %s", p->pid, state, p->name);
+    cprintf("%d %s %s (cmode: %d)", p->pid, state, p->name, p->mode);
     if(p->state == SLEEPING){
       getcallerpcs((uint*)p->context->ebp+2, pc);
       for(i=0; i<10 && pc[i] != 0; i++)
