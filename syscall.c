@@ -127,8 +127,8 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_cap_enter]   sys_cap_enter,
 [SYS_cap_new]     sys_cap_new,
-[SYS_cap_getmode] sys_cap_enter,
-[SYS_cap_getrights]   sys_cap_enter,
+[SYS_cap_getmode] sys_cap_getmode,
+[SYS_cap_getrights]   sys_cap_getrights,
 };
 
 void

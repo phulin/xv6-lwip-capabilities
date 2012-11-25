@@ -9,17 +9,31 @@ int stdout = 1;
 
 int main(void)
 {
-  uint cmode = 3;
+  uint cmode = 5;
+  int work = 1;
 
-  printf(stdout, "Current Mode: %x\n", cmode);
   cap_getmode(&cmode);
-  printf(stdout, "Current Mode: %x\n", cmode);
+  printf(stdout, "Current Mode: %x (Should be 0)\n", cmode);
+  if (cmode != 0)
+    work = 0;
   cap_enter();
   cap_getmode(&cmode);
-  while(1)
-    sleep(5);
-  printf(stdout, "Current Mode: %x\n", cmode);
-  printf(stdout, "Capabilities work!!!\n");
-  return 0;
-  //exit();
+  printf(stdout, "Current Mode: %x (Should be 1)\n", cmode);
+  if (cmode != 1)
+    work = 0;
+  
+  int pid = fork();
+
+  cap_getmode(&cmode);
+  printf(stdout, "PID %x: Current Mode %x (Should be 1)\n", pid, cmode);
+  if (cmode != 1)
+    work = 0;
+
+  if (pid != 0) {
+    // Parent
+    wait();
+    if (work)
+      printf(stdout, "Capabilities work!!!\n");
+  }
+  exit();
 }

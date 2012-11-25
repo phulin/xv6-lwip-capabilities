@@ -21,7 +21,9 @@ int sys_cap_getmode(void)
 
   if(argptr(0, (void*)&mode, sizeof(*mode)) < 0)
     return -1;
+
   *mode = proc->mode; 
+
   return 0;
 }
 
@@ -42,7 +44,7 @@ int sys_cap_new(void)
   return fd;
 }
 
-int sys_cap_get_rights(void)
+int sys_cap_getrights(void)
 {
   struct file *f;
   cap_rights_t *rights;
