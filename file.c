@@ -116,7 +116,7 @@ fileread(struct file *f, char *addr, int n)
     if ((f->rights & (CAP_STAT | CAP_SEEK)) != (CAP_STAT | CAP_SEEK))
       panic("fileread: Missing CAP_STAT | CAP_SEEK");
 
-  if(f->readable == 0)
+  if(proc->mode == MODE_NORM && f->readable == 0)
     return -1;
   if(f->type == FD_PIPE)
     return piperead(f->pipe, addr, n);
@@ -141,7 +141,7 @@ filewrite(struct file *f, char *addr, int n)
     if ((f->rights & (CAP_STAT | CAP_SEEK | CAP_WRITE)) != (CAP_STAT | CAP_SEEK | CAP_WRITE))
       return -2;
 
-  if(f->writable == 0)
+  if(proc->mode == MODE_NORM && f->writable == 0)
     return -1;
   if(f->type == FD_PIPE)
     return pipewrite(f->pipe, addr, n);

@@ -58,17 +58,28 @@ int main(void)
 
   printf(stdout, "Root FD: %d\n", rootfd);
 
-  //cap_new(rootfd, CAP_ALL);
-  newrootfd = cap_new(rootfd, CAP_STAT);
-  close(rootfd);
-  
-  if (createat(newrootfd, "captest4") < 0)
-    printf(stdout, "Failed to create at /captestdir/");
+  newrootfd = cap_new(rootfd, CAP_ALL);
 
-  fd = open("captest4", O_RDWR);
-  write(fd, "Here is this!", 13);
-  printf(stdout, "Here with FD %d\n", fd);
-  close(fd);
+  if ((fd = createat(newrootfd, "captest3")) < 0) {
+    printf(stdout, "Failed to create at /captestdir/\n");
+  } else {
+    write(fd, "Here is this!", 13);
+    cap_getrights(fd, &rights);
+    printf(stdout, "Here with FD %d (cap %d)\n", fd, rights);
+    close(fd);
+  }
+
+
+  newrootfd = cap_new(rootfd, CAP_STAT);
+  
+  if ((fd = createat(newrootfd, "captest4")) < 0) {
+    printf(stdout, "Failed to create at /captestdir/\n");
+  } else {
+    write(fd, "Here is this!", 13);
+    cap_getrights(fd, &rights);
+    printf(stdout, "Here with FD %d (cap %d)\n", fd, rights);
+    close(fd);
+  }
 
   int pid = fork();
 
