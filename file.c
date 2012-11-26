@@ -8,6 +8,9 @@
 #include "fs.h"
 #include "file.h"
 #include "spinlock.h"
+#include "capability.h"
+#include "mmu.h"
+#include "proc.h"
 
 struct devsw devsw[NDEV];
 struct {
@@ -82,6 +85,10 @@ fileclose(struct file *f)
 int
 filestat(struct file *f, struct stat *st)
 {
+  if (proc->mode == MODE_CAP)
+    if ((f->rights & (CAP_STAT)) == 0)
+      return -1;
+
   if(f->type == FD_INODE){
     ilock(f->ip);
     stati(f->ip, st);
@@ -96,6 +103,10 @@ int
 fileread(struct file *f, char *addr, int n)
 {
   int r;
+
+  if (proc->mode == MODE_CAP)
+    if ((f->rights & (CAP_STAT | CAP_SEEK)) == 0)
+      return -1;
 
   if(f->readable == 0)
     return -1;

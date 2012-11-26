@@ -8,13 +8,14 @@
 #include "file.h"
 #include "fcntl.h"
 
-// Sets the current process mode to be CAPABILITY mode.
+// Sets the current process mode to be MODE_CAP mode.
 int sys_cap_enter(void)
 {
   proc->mode = MODE_CAP;
   return 0;
 }
 
+// Returns the current process mode in arg0
 int sys_cap_getmode(void)
 {
   uint* mode;
@@ -27,6 +28,7 @@ int sys_cap_getmode(void)
   return 0;
 }
 
+// Creates a new file descriptor with limited capabilities.
 int sys_cap_new(void)
 {
   int fd;
@@ -44,6 +46,7 @@ int sys_cap_new(void)
   return fd;
 }
 
+// Returns the capabilities on the file descriptor.
 int sys_cap_getrights(void)
 {
   struct file *f;
