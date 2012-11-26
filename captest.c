@@ -60,6 +60,7 @@ int main(void)
 
   newrootfd = cap_new(rootfd, CAP_ALL);
 
+  printf(stdout, "Creating /captestdir/captest3 with perms on /captestdir/\n");
   if ((fd = createat(newrootfd, "captest3")) < 0) {
     printf(stdout, "Failed to create at /captestdir/\n");
   } else {
@@ -72,6 +73,7 @@ int main(void)
 
   newrootfd = cap_new(rootfd, CAP_STAT);
   
+  printf(stdout, "Creating /captestdir/captest4 without perms on /captestdir/\n");
   if ((fd = createat(newrootfd, "captest4")) < 0) {
     printf(stdout, "Failed to create at /captestdir/\n");
   } else {
