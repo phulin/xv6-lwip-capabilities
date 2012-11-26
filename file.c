@@ -46,6 +46,10 @@ filealloc(void)
 struct file*
 filedup(struct file *f)
 {
+  if (proc->mode == MODE_CAP)
+    if ((f->rights & (CAP_STAT)) != (CAP_STAT))
+      panic("filedup: Missing CAP_STAT");
+
   acquire(&ftable.lock);
   if(f->ref < 1)
     panic("filedup");
@@ -59,6 +63,10 @@ void
 fileclose(struct file *f)
 {
   struct file ff;
+
+  if (proc->mode == MODE_CAP)
+    if ((f->rights & (CAP_STAT)) != (CAP_STAT))
+      panic("fileclose: Missing CAP_STAT");
 
   acquire(&ftable.lock);
   if(f->ref < 1)
@@ -86,8 +94,8 @@ int
 filestat(struct file *f, struct stat *st)
 {
   if (proc->mode == MODE_CAP)
-    if ((f->rights & (CAP_STAT)) == 0)
-      return -1;
+    if ((f->rights & (CAP_STAT)) != (CAP_STAT))
+      panic("filestat: Missing CAP_STAT");
 
   if(f->type == FD_INODE){
     ilock(f->ip);
@@ -105,8 +113,8 @@ fileread(struct file *f, char *addr, int n)
   int r;
 
   if (proc->mode == MODE_CAP)
-    if ((f->rights & (CAP_STAT | CAP_SEEK)) == 0)
-      return -1;
+    if ((f->rights & (CAP_STAT | CAP_SEEK)) != (CAP_STAT | CAP_SEEK))
+      panic("fileread: Missing CAP_STAT | CAP_SEEK");
 
   if(f->readable == 0)
     return -1;
@@ -128,6 +136,10 @@ int
 filewrite(struct file *f, char *addr, int n)
 {
   int r;
+
+  if (proc->mode == MODE_CAP)
+    if ((f->rights & (CAP_STAT | CAP_SEEK | CAP_WRITE)) != (CAP_STAT | CAP_SEEK | CAP_WRITE))
+      panic("filewrite: Missing CAP_STAT | CAP_SEEK | CAP_WRITE");
 
   if(f->writable == 0)
     return -1;
