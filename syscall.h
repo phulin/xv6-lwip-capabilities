@@ -24,3 +24,4 @@
 #define SYS_cap_new    23
 #define SYS_cap_getmode  24
 #define SYS_cap_getrights  25
+#define SYS_createat 26

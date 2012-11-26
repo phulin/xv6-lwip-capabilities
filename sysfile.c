@@ -240,9 +240,7 @@ create(char *path, short type, short major, short minor)
   char name[DIRSIZ];
 
   if (proc->mode == MODE_CAP)
-    if ((proc->rights & (CAP_CREATE)) != (CAP_CREATE))
-      panic("create: Missing CAP_STAT");
-
+    panic("create: Can't be used in Capability Mode");
 
   if((dp = nameiparent(path, name)) == 0)
     return 0;
@@ -428,4 +426,79 @@ sys_pipe(void)
   fd[0] = fd0;
   fd[1] = fd1;
   return 0;
+}
+
+int sys_createat(void) {
+  int nfd;
+  struct file *df, *f;
+  char* name;
+
+  if (argfd(0, 0, &df) < 0)
+    return -1;
+  if (argstr(1, &name) < 0)
+    return -1;
+  
+  uint off;
+  struct inode *ip, *dp;
+  dp = df->ip;
+
+  ilock(dp);
+
+  if((ip = dirlookup(dp, name, &off)) != 0){
+    iunlockput(dp);
+    ilock(ip);
+    if(ip->type == T_FILE) {
+      if((f = filealloc()) == 0 || (nfd = fdalloc(f)) < 0){
+        if(f)
+          fileclose(f);
+        iunlockput(ip);
+        return -1;
+      }
+      iunlock(ip);
+
+      f->rights = df->rights;
+      f->type = FD_INODE;
+      f->ip = ip;
+      f->off = 0;
+      f->readable = df->readable;
+      f->writable = df->writable;
+      return nfd;
+    }
+    iunlockput(ip);
+    return 0;
+  }
+  cprintf("HELLO\n");
+
+  if((ip = ialloc(dp->dev, T_FILE)) == 0)
+    panic("createat: ialloc");
+
+  ilock(ip);
+  ip->major = 0;
+  ip->minor = 0;
+  ip->nlink = 1;
+  iupdate(ip);
+  cprintf("HELLO\n");
+
+  if(dirlink(dp, name, ip->inum) < 0)
+    panic("create: dirlink");
+
+  iunlockput(dp);
+
+  if((f = filealloc()) == 0 || (nfd = fdalloc(f)) < 0){
+    if(f)
+      fileclose(f);
+    iunlockput(ip);
+    return -1;
+  }
+  iunlock(ip);
+  cprintf("HELLO\n");
+  
+  f->rights = df->rights;
+  f->type = FD_INODE;
+  f->ip = ip;
+  f->off = 0;
+  f->readable = df->readable;
+  f->writable = df->writable;  
+
+  return nfd;
 }

@@ -16,10 +16,14 @@ int stdout = 1;
 
 int main(void)
 {
-  int fd, fd2;
+  int rootfd, fd, fd2;
   uint cmode = 5;
   int work = 1;
 
+
+  mkdir("captestdir");
+  chdir("captestdir");
+  rootfd = open("/captestdir", O_RDONLY);
   fd = open("captest1", O_CREATE | O_RDWR);
   fd2 = open("captest2", O_CREATE | O_RDWR);
   printf(stdout, "FD2: %d\n", fd2);
@@ -31,6 +35,7 @@ int main(void)
   cap_enter();
   cap_getmode(&cmode);
   printf(stdout, "Current Mode: %x (Should be 1)\n", cmode);
+
   if (cmode != 1)
     work = 0;
   write(fd, "aaaaaaaa", 8);
@@ -51,12 +56,20 @@ int main(void)
   close(fd);
   close(fd2);
 
-  cap_new(-1, CAP_ALL & ~CAP_CREATE);
+  printf(stdout, "Root FD: %d\n", rootfd);
 
-  fd2 = open("captest3fail", O_CREATE | O_RDWR);
+  createat(rootfd, "captest4");
 
-  write(fd2, "FAILFAIL", 8); 
-  close(fd2);
+  fd = open("captest4", O_RDWR);
+  write(fd, "Here is this!", 13);
+  printf(stdout, "Here with FD %d\n", fd);
+  close(fd);
+
+  fd = open("/captest4", O_RDONLY);
+  char* buf;
+  read(fd, &buf, 12);
+  printf(stdout, buf);
+
   int pid = fork();
 
   cap_getmode(&cmode);

@@ -71,7 +71,6 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
   p->mode = MODE_NORM;
-  p->rights = 0;
 
   return p;
 }
@@ -149,7 +148,6 @@ fork(void)
   np->parent = proc;
   *np->tf = *proc->tf;
   np->mode = proc->mode;
-  np->rights = proc->rights;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;

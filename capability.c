@@ -17,7 +17,7 @@ int sys_cap_enter(void)
     return 0;
 
   proc->mode = MODE_CAP;
-  proc->rights = CAP_ALL;
+
   for (i = 0; i < NOFILE; i += 1)
     if (proc->ofile[i])
       proc->ofile[i]->rights = CAP_ALL;
@@ -45,18 +45,9 @@ int sys_cap_new(void)
   struct file* newfile;
   cap_rights_t rights;
 
-  if(argfd(0, &fd, &file) < 0) {
-    if (argint(0, &fd) < 0)
-      return -1;
-    else if (fd != -1)
-      return -1;
-    else {
-      if ((~(proc->rights) & rights))
-        return -1;
-      proc->rights = rights;
-      return 0;
-    }
-  }
+  if(argfd(0, &fd, &file) < 0)
+    return -1;
+
   if(argint(1, (int*)&rights) < 0)
     return -1;
 
@@ -90,20 +81,12 @@ int sys_cap_getrights(void)
   struct file *f;
   cap_rights_t *rights;
 
+  if(argfd(0, &fd, &f) < 0)
+    return -1;
+  
   if(argptr(1, (void*)&rights, sizeof(*rights)) < 0)
     return -1;
 
-  if(argfd(0, &fd, &f) < 0) {
-    if (argint(0, &fd) < 0)
-      return -1;
-    else if (fd != -1)
-      return -1;
-    else {
-      *rights = proc->rights;
-      return 0;
-    }
-  }
-  
   *rights = f->rights;
 
   return 0;

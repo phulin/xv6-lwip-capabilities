@@ -102,6 +102,7 @@ extern int sys_cap_enter(void);
 extern int sys_cap_getmode(void);
 extern int sys_cap_new(void);
 extern int sys_cap_getrights(void);
+extern int sys_createat(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -129,6 +130,7 @@ static int (*syscalls[])(void) = {
 [SYS_cap_new]     sys_cap_new,
 [SYS_cap_getmode] sys_cap_getmode,
 [SYS_cap_getrights]   sys_cap_getrights,
+[SYS_createat] sys_createat,
 };
 
 void
