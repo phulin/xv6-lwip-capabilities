@@ -38,7 +38,9 @@ int main(void)
   cap_rights_t rights;
   cap_getrights(fd2, &rights);
   printf(stdout, "Rights: %d\n", rights);
-  fd2 = cap_new(fd2, CAP_STAT);
+  write(fd2, "bbbbbbbb", 8);
+
+  fd2 = cap_new(fd2, CAP_STAT | CAP_SEEK | CAP_WRITE);
   cap_getrights(fd2, &rights);
   printf(stdout, "Rights: %d\n", rights);
   printf(stdout, "FD2: %d\n", fd2);
