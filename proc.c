@@ -71,7 +71,7 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
   p->mode = MODE_NORM;
-  p->rights = CAP_ALL;
+  p->rights = 0;
 
   return p;
 }

@@ -13,8 +13,11 @@
 int sys_cap_enter(void)
 {
   int i;
+  if(proc->mode == MODE_CAP)
+    return 0;
 
   proc->mode = MODE_CAP;
+  proc->rights = CAP_ALL;
   for (i = 0; i < NOFILE; i += 1)
     if (proc->ofile[i])
       proc->ofile[i]->rights = CAP_ALL;

@@ -13,6 +13,7 @@
 #include "fs.h"
 #include "file.h"
 #include "fcntl.h"
+#include "capability.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -237,6 +238,11 @@ create(char *path, short type, short major, short minor)
   uint off;
   struct inode *ip, *dp;
   char name[DIRSIZ];
+
+  if (proc->mode == MODE_CAP)
+    if ((proc->rights & (CAP_CREATE)) != (CAP_CREATE))
+      panic("create: Missing CAP_STAT");
+
 
   if((dp = nameiparent(path, name)) == 0)
     return 0;
