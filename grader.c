@@ -64,7 +64,7 @@ int main(void)
   if (pid != 0) {
     wait();
 
-    fd = open("grades.txt", O_CREATE | O_RDWR);
+    fd = open("grades.txt", O_RDWR);
     if (fd < 0) {
       printf(1, "open failed: %e", fd);
       exit();

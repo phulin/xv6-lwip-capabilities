@@ -442,6 +442,7 @@ int sys_createat(void) {
   struct inode *ip, *dp;
   dp = df->ip;
 
+  begin_trans();
   ilock(dp);
 
   if((ip = dirlookup(dp, name, &off)) != 0){
@@ -452,6 +453,7 @@ int sys_createat(void) {
         if(f)
           fileclose(f);
         iunlockput(ip);
+  commit_trans();
         return -1;
       }
       iunlock(ip);
@@ -462,32 +464,35 @@ int sys_createat(void) {
       f->off = 0;
       f->readable = df->readable;
       f->writable = df->writable;
+  commit_trans();
       return nfd;
     }
     iunlockput(ip);
+  commit_trans();
     return 0;
   }
-  cprintf("HELLO\n");
 
   if((ip = ialloc(dp->dev, T_FILE)) == 0)
     panic("createat: ialloc");
 
+  cprintf("HELLO\n");
   ilock(ip);
   ip->major = 0;
   ip->minor = 0;
   ip->nlink = 1;
   iupdate(ip);
-  cprintf("HELLO\n");
 
   if(dirlink(dp, name, ip->inum) < 0)
     panic("create: dirlink");
 
   iunlockput(dp);
 
+  cprintf("HELLO\n");
   if((f = filealloc()) == 0 || (nfd = fdalloc(f)) < 0){
     if(f)
       fileclose(f);
     iunlockput(ip);
+    commit_trans();
     return -1;
   }
   iunlock(ip);
@@ -499,6 +504,6 @@ int sys_createat(void) {
   f->off = 0;
   f->readable = df->readable;
   f->writable = df->writable;  
-
+  commit_trans();
   return nfd;
 }

@@ -58,6 +58,9 @@ int main(void)
 
   printf(stdout, "Root FD: %d\n", rootfd);
 
+  cap_new(rootfd, 0);
+  close(rootfd);
+
   createat(rootfd, "captest4");
 
   fd = open("captest4", O_RDWR);
