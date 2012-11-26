@@ -70,6 +70,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   uint mode;                   // Mode (MODE_NORM, MODE_CAP) 
+  cap_rights_t rights;
 };
 
 // Process memory is laid out contiguously, low addresses first:
