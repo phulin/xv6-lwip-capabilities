@@ -139,7 +139,7 @@ filewrite(struct file *f, char *addr, int n)
 
   if (proc->mode == MODE_CAP)
     if ((f->rights & (CAP_STAT | CAP_SEEK | CAP_WRITE)) != (CAP_STAT | CAP_SEEK | CAP_WRITE))
-      panic("filewrite: Missing CAP_STAT | CAP_SEEK | CAP_WRITE");
+      return -2;
 
   if(f->writable == 0)
     return -1;
