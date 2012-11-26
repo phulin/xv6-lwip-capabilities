@@ -1,4 +1,4 @@
-#define CAP_ALL      0xFFFF
+#define CAP_ALL      0xFFFFF
 #define CAP_STAT     0x0001
 #define CAP_SEEK     0x0002
 #define CAP_WRITE    0x0004
@@ -15,3 +15,4 @@
 #define CAP_SBRK     0x2000
 #define CAP_NEWCAP   0x4000
 #define CAP_GETCAP   0x8000
+#define CAP_CREATE   0x10000

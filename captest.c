@@ -51,6 +51,12 @@ int main(void)
   close(fd);
   close(fd2);
 
+  cap_new(-1, CAP_ALL & ~CAP_CREATE);
+
+  fd2 = open("captest3fail", O_CREATE | O_RDWR);
+
+  write(fd2, "FAILFAIL", 8); 
+  close(fd2);
   int pid = fork();
 
   cap_getmode(&cmode);
