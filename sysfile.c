@@ -438,11 +438,14 @@ int sys_createat(void) {
   if (argstr(1, &name) < 0)
     return -1;
   
+  if (proc->mode == MODE_CAP)
+    if ((df->rights & (CAP_SEEK | CAP_STAT | CAP_WRITE)) != (CAP_SEEK | CAP_STAT | CAP_WRITE))
+      return -1;
+
   uint off;
   struct inode *ip, *dp;
   dp = df->ip;
 
-  begin_trans();
   ilock(dp);
 
   if((ip = dirlookup(dp, name, &off)) != 0){
@@ -453,7 +456,6 @@ int sys_createat(void) {
         if(f)
           fileclose(f);
         iunlockput(ip);
-  commit_trans();
         return -1;
       }
       iunlock(ip);
@@ -464,18 +466,16 @@ int sys_createat(void) {
       f->off = 0;
       f->readable = df->readable;
       f->writable = df->writable;
-  commit_trans();
       return nfd;
     }
     iunlockput(ip);
-  commit_trans();
     return 0;
   }
 
+  begin_trans();
   if((ip = ialloc(dp->dev, T_FILE)) == 0)
     panic("createat: ialloc");
 
-  cprintf("HELLO\n");
   ilock(ip);
   ip->major = 0;
   ip->minor = 0;
@@ -487,7 +487,6 @@ int sys_createat(void) {
 
   iunlockput(dp);
 
-  cprintf("HELLO\n");
   if((f = filealloc()) == 0 || (nfd = fdalloc(f)) < 0){
     if(f)
       fileclose(f);
@@ -496,7 +495,6 @@ int sys_createat(void) {
     return -1;
   }
   iunlock(ip);
-  cprintf("HELLO\n");
   
   f->rights = df->rights;
   f->type = FD_INODE;

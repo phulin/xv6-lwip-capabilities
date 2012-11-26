@@ -16,7 +16,7 @@ int stdout = 1;
 
 int main(void)
 {
-  int rootfd, fd, fd2;
+  int newrootfd, rootfd, fd, fd2;
   uint cmode = 5;
   int work = 1;
 
@@ -58,20 +58,17 @@ int main(void)
 
   printf(stdout, "Root FD: %d\n", rootfd);
 
-  cap_new(rootfd, 0);
+  //cap_new(rootfd, CAP_ALL);
+  newrootfd = cap_new(rootfd, CAP_STAT);
   close(rootfd);
-
-  createat(rootfd, "captest4");
+  
+  if (createat(newrootfd, "captest4") < 0)
+    printf(stdout, "Failed to create at /captestdir/");
 
   fd = open("captest4", O_RDWR);
   write(fd, "Here is this!", 13);
   printf(stdout, "Here with FD %d\n", fd);
   close(fd);
-
-  fd = open("/captest4", O_RDONLY);
-  char* buf;
-  read(fd, &buf, 12);
-  printf(stdout, buf);
 
   int pid = fork();
 
