@@ -52,7 +52,8 @@ TOOLPREFIX := $(shell if i386-jos-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/d
 endif
 
 # If the makefile can't find QEMU, specify its path here
-QEMU = /home/dvorak42/6.828/qemu/bin/qemu
+include Makefile.qemu
+# QEMU = /home/dvorak42/6.828/qemu/bin/qemu
 
 # Try to infer the correct QEMU
 ifndef QEMU
