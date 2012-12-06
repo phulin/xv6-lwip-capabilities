@@ -32,8 +32,13 @@ struct inode {
 struct devsw {
   int (*read)(struct inode*, char*, int);
   int (*write)(struct inode*, char*, int);
+  // traditionally, 3rd argument type is 'char*', but use 'void*' in this time.
+  int (*ioctl)(struct inode*, int request, void* argp);
 };
 
 extern struct devsw devsw[];
 
 #define CONSOLE 1
+#define ETHERNET 2         // Major
+#define ETHERNET_NO(n) n   // Miner >= 0
+

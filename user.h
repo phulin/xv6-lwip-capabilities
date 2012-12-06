@@ -27,6 +27,7 @@ int cap_getmode(uint* modep);
 int cap_new(int fd, cap_rights_t rights);
 int cap_getrights(int fd, cap_rights_t* rights);
 int createat(int, char*);
+int ioctl(int, int, void*);
 
 
 // ulib.c

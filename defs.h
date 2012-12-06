@@ -20,6 +20,10 @@ void            cprintf(char*, ...);
 void            consoleintr(int(*)(void));
 void            panic(char*) __attribute__((noreturn));
 
+// net/eth.c
+void            ethinit(void);
+void            ethintr(void);
+
 // exec.c
 int             exec(char*, char**);
 
@@ -31,6 +35,7 @@ void            fileinit(void);
 int             fileread(struct file*, char*, int n);
 int             filestat(struct file*, struct stat*);
 int             filewrite(struct file*, char*, int n);
+int             fileioctl(struct file*, int, void*);
 
 // fs.c
 void            readsb(int dev, struct superblock *sb);
