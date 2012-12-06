@@ -16,3 +16,4 @@ mkfs
 .gdbinit
 .vim.custom
 Makefile.qemu
+.bochsrc
