@@ -255,7 +255,7 @@ create(char *path, short type, short major, short minor)
     return 0;
   }
 
-  if((ip = ialloc(dp->dev, type)) == 0)
+ if((ip = ialloc(dp->dev, type)) == 0)
     panic("create: ialloc");
 
   ilock(ip);
@@ -280,16 +280,13 @@ create(char *path, short type, short major, short minor)
   return ip;
 }
 
-int
-sys_open(void)
+static int
+open(char *path, int omode, struct file *basef)
 {
-  char *path;
-  int fd, omode;
+  int fd;
   struct file *f;
   struct inode *ip;
 
-  if(argstr(0, &path) < 0 || argint(1, &omode) < 0)
-    return -1;
   if(omode & O_CREATE){
     begin_trans();
     ip = create(path, T_FILE, 0, 0);
@@ -297,7 +294,7 @@ sys_open(void)
     if(ip == 0)
       return -1;
   } else {
-    if((ip = namei(path)) == 0)
+    if((ip = nameibase(path, basef ? basef->ip : 0)) == 0)
       return -1;
     ilock(ip);
     if(ip->type == T_DIR && omode != O_RDONLY){
@@ -319,7 +316,58 @@ sys_open(void)
   f->off = 0;
   f->readable = !(omode & O_WRONLY);
   f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+  if (proc->mode == MODE_CAP && basef != 0) {
+    f->rights = basef->rights;
+  }
   return fd;
+}
+
+int
+sys_open(void)
+{
+  char *path;
+  int omode;
+
+  if (proc->mode == MODE_CAP)
+    panic("create: Can't be used in Capability Mode");
+
+  if(argstr(0, &path) < 0 || argint(1, &omode) < 0)
+    return -1;
+
+  return open(path, omode, 0);
+}
+
+int
+sys_openat(void)
+{
+  char *path;
+  int omode;
+  char *slash, *segment_start;
+  struct file *df;
+  char pathdup[512];
+
+  if (argfd(0, 0, &df) < 0 || argstr(1, &path) < 0
+      || argint(2, &omode) < 0)
+    return -1;
+  if (omode & O_CREATE)
+    return -1;
+  
+  strncpy(pathdup, path, 512);
+  segment_start = pathdup;
+  if (pathdup[0] == '/')
+    return -1;
+  for (slash = pathdup; slash != '\0'; slash++) {
+    if (*slash == '/') {
+      *slash = '\0';
+
+      if (strncmp(segment_start, "..", DIRSIZ) == 0)
+        return -1;
+
+      segment_start = slash + 1;
+    }
+  }
+
+  return open(path, omode, df);
 }
 
 int

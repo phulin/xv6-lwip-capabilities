@@ -602,14 +602,16 @@ skipelem(char *path, char *name)
 // If parent != 0, return the inode for the parent and copy the final
 // path element into name, which must have room for DIRSIZ bytes.
 static struct inode*
-namex(char *path, int nameiparent, char *name)
+namex(char *path, int nameiparent, char *name, struct inode *basediri)
 {
   struct inode *ip, *next;
 
-  if(*path == '/')
+  if(*path == '/') {
     ip = iget(ROOTDEV, ROOTINO);
-  else
-    ip = idup(proc->cwd);
+  } else {
+    basediri = basediri ? basediri : proc->cwd;
+    ip = idup(basediri);
+  }
 
   while((path = skipelem(path, name)) != 0){
     ilock(ip);
@@ -640,11 +642,18 @@ struct inode*
 namei(char *path)
 {
   char name[DIRSIZ];
-  return namex(path, 0, name);
+  return namex(path, 0, name, 0);
 }
 
 struct inode*
 nameiparent(char *path, char *name)
 {
-  return namex(path, 1, name);
+  return namex(path, 1, name, 0);
+}
+
+struct inode*
+nameibase(char *path, struct inode *base)
+{
+  char name[DIRSIZ];
+  return namex(path, 0, name, base);
 }
