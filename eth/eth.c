@@ -34,12 +34,14 @@ ethioctl(struct inode* ip, int request, void* p)
 int
 ethread(struct inode* ip, char* p, int n)
 {
+  cprintf("ethread\n");
   return ne_pio_read(&ne, (uchar*)p, n);
 }
 
 int
 ethwrite(struct inode* ip, char* p, int n)
 {
+  cprintf("ethwrite\n");
   return ne_pio_write(&ne, (uchar*)p, n);
 }
 

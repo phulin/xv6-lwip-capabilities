@@ -30,6 +30,7 @@ OBJS = \
 	vectors.o\
 	vm.o\
 	capability.o\
+	thread.o\
 	eth/ne.o\
 	eth/eth.o\
 	${LWIP_OBJS}
@@ -205,6 +206,7 @@ mkfs: mkfs.c fs.h
 UPROGS=\
 	_captest\
 	_cat\
+	_catnet\
 	_echo\
 	_forktest\
 	_grep\
@@ -221,7 +223,8 @@ UPROGS=\
 	_zombie\
 	_grader\
 	_ethtest\
-	_tcpecho
+	_tcpecho\
+	_tcpout
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

@@ -1,6 +1,8 @@
 // Segments in proc->gdt.
 #define NSEGS     7
 
+extern struct spinlock ptablelock;
+extern struct proc *initproc;
 // Per-CPU state
 struct cpu {
   uchar id;                    // Local APIC ID; index into cpus[] below
@@ -70,6 +72,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   uint mode;                   // Mode (MODE_NORM, MODE_CAP) 
+  struct thread *thr;
 };
 
 // Process memory is laid out contiguously, low addresses first:

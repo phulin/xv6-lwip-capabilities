@@ -43,12 +43,13 @@ main(void)
   memp_init();
   mem_init();
   netif_init();
+  pbuf_init();
   tcpip_init(0, 0);
 
   struct ip_addr ipaddr;
   IP4_ADDR(&ipaddr, 10, 0, 2, 15);
   struct ip_addr netmask;
-  IP4_ADDR(&netmask, 255, 255, 0, 0);
+  IP4_ADDR(&netmask, 255, 0, 0, 0);
   struct ip_addr gw;
   IP4_ADDR(&gw, 10, 0, 2, 2);
 
@@ -57,8 +58,6 @@ main(void)
   netif_add(netif, &ipaddr, &netmask, &gw, NULL, projethif_init, ip_input);
   netif_set_up(netif);
   netif_set_default(netif);
-  
-
 
   if(!ismp)
     timerinit();   // uniprocessor timer

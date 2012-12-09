@@ -15,14 +15,17 @@ struct sem {
     int val;
     int waiters;
     int valid;
+  int name;
 };
+
+static int next_name = 2;
 
 void sys_init() {
 }
 
 int sem_destroy(sys_sem_t sem)
 {
-  cprintf("sem_destroy\n");
+  cprintf("sem_destroy %x\n", sem->name);
     assert(sem->waiters == 0);
     return 0;
 }
@@ -30,7 +33,7 @@ int sem_destroy(sys_sem_t sem)
 
 void sem_post(sys_sem_t sem)
 {
-  cprintf("sem_post\n");
+  cprintf("sem_post %x - %d\n", sem->name, sem->val);
     acquire(&sem->lock);
     sem->val++;
     if ((sem->waiters) && (sem->val > 0))
@@ -42,7 +45,7 @@ void sem_post(sys_sem_t sem)
 
 void sem_wait(sys_sem_t sem)
 {
-  cprintf("sem_wait\n");
+  cprintf("sem_wait %x - %d\n", sem->name, sem->val);
     acquire(&sem->lock);
     while (sem->val == 0)
     {
@@ -56,7 +59,7 @@ void sem_wait(sys_sem_t sem)
 
 int sem_timedwait(sys_sem_t sem, int timo)
 {
-  cprintf("sem_timedwait\n");
+  cprintf("sem_timedwait %x\n", sem->name);
     int ret;
 
     acquire(&sem->lock);
@@ -78,7 +81,7 @@ int sem_timedwait(sys_sem_t sem, int timo)
 
 int sem_trywait(sys_sem_t *sem)
 {
-  cprintf("sem_trywait\n");
+  cprintf("sem_trywait %x\n", (*sem)->name);
     int ret;
 
     acquire(&(*sem)->lock);
@@ -95,7 +98,7 @@ int sem_trywait(sys_sem_t *sem)
 
 int sem_value(sys_sem_t *sem)
 {
-  cprintf("sem_value\n");
+  cprintf("sem_value %x\n", sem);
     int ret;
 
     acquire(&(*sem)->lock);
@@ -111,33 +114,37 @@ int sem_size()
 
 err_t sys_sem_new(sys_sem_t *sem, u8_t count)
 {
-  cprintf("sys_sem_new\n");
+  cprintf("sys_sem_new %x - %d\n", next_name, count);
   *sem = (sys_sem_t) kalloc();//malloc(sem_size());
   assert(count >= 0);
   initlock(&(*sem)->lock, "sem lock");
   (*sem)->val = count;
   (*sem)->valid = 1;
   (*sem)->waiters = 0;
+  (*sem)->name = next_name++;
+  cprintf("exit sys_sem_new %x - %d\n", (*sem)->name, (*sem)->val);
   return 0;
 }
 
 void sys_sem_free(sys_sem_t *sem)
 {
-  cprintf("sys_sem_free\n");
-  if (sem)
+  if (sem) {
+    cprintf("sys_sem_free %x\n", (*sem)->name);
     sem_destroy(*sem);
+  }
 }
 
 void sys_sem_signal(sys_sem_t *sem)
 {
-  cprintf("sys_sem_signal\n");
-  if (sem)
+  if (sem) {
+    cprintf("sys_sem_signal %x\n", (*sem)->name);
     sem_post(*sem);
+  }
 }
 
 u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
 {
-  cprintf("sys_arch_sem_wait\n");
+  cprintf("sys_arch_sem_wait %x for %x\n", (*sem)->name, timeout);
   if (!sem)
     return -1;
 
@@ -295,22 +302,29 @@ u32_t sys_arch_mbox_tryfetch(sys_mbox_t *mbox, void **msg) {
 }
 
 sys_thread_t sys_thread_new(const char *name, lwip_thread_fn thread, void *arg, int stacksize, int prio) {
-  return 0;
+  sys_thread_t thr = kproc_start(thread, arg, prio, 0, 0);
+  return thr;
 }
 
 int sys_sem_valid(sys_sem_t *sem) {
-  return (*sem)->valid;
+  if (sem && *sem)
+    return (*sem)->valid;
+  return 0;
 }
 
 void sys_sem_set_invalid(sys_sem_t *sem) {
-  (*sem)->valid = 0;
+  if (sem && *sem)
+    (*sem)->valid = 0;
 }
 
 int sys_mbox_valid(sys_mbox_t *mbox) {
-  return (*mbox)->valid;
+  if (mbox && *mbox)
+    return (*mbox)->valid;
+  return 0;
 }
 
 void sys_mbox_set_invalid(sys_mbox_t *mbox) {
-  (*mbox)->valid = 0;
+  if (mbox && *mbox)
+    (*mbox)->valid = 0;
 }
 

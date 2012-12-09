@@ -109,6 +109,7 @@ int             pipewrite(struct pipe*, char*, int);
 //PAGEBREAK: 16
 // proc.c
 struct proc*    copyproc(struct proc*);
+struct proc*    allocproc(void);
 void            exit(void);
 int             fork(void);
 int             growproc(int);

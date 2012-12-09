@@ -6,6 +6,7 @@
 #define SYS_ARCH_UNPROTECT(lev)
 
 #include "cc.h"
+#include "../../../../thread.h"
 
 struct sem;
 typedef struct sem* sys_sem_t;
@@ -13,7 +14,7 @@ typedef struct sem* sys_sem_t;
 struct mbox;
 typedef struct mbox* sys_mbox_t;
 
-typedef u32_t sys_thread_t;
+typedef kproc_t sys_thread_t;
 
 void sys_init(void);
 
