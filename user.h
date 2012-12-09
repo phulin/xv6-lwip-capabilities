@@ -29,7 +29,9 @@ int cap_new(int fd, cap_rights_t rights);
 int cap_getrights(int fd, cap_rights_t* rights);
 int createat(int, char*);
 int ioctl(int, int, void*);
-int forkwithfds(struct fdlist *);
+int forkwithfds(struct fdlist*);
+struct fdlist *getparentfds(void);
+int openat(int dfd, char *path, int mode);
 
 
 // ulib.c
