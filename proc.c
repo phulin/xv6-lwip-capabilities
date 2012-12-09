@@ -148,6 +148,7 @@ fork(void)
   np->parent = proc;
   *np->tf = *proc->tf;
   np->mode = proc->mode;
+  np->parentfds = proc->parentfds;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -160,6 +161,24 @@ fork(void)
   pid = np->pid;
   np->state = RUNNABLE;
   safestrcpy(np->name, proc->name, sizeof(proc->name));
+  return pid;
+}
+
+int
+forkwithfds(struct fdlist *fds)
+{
+  int pid;
+  struct proc *p;
+
+  if ((pid = fork()) < 0)
+    return pid;
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->state == RUNNABLE && p->pid == pid) {
+      p->parentfds = fds;
+      break;
+    }
+  }
+
   return pid;
 }
 

@@ -1,5 +1,6 @@
 struct buf;
 struct context;
+struct fdlist;
 struct file;
 struct inode;
 struct pipe;
@@ -111,6 +112,7 @@ int             pipewrite(struct pipe*, char*, int);
 struct proc*    copyproc(struct proc*);
 void            exit(void);
 int             fork(void);
+int             forkwithfds(struct fdlist*);
 int             growproc(int);
 int             kill(int);
 void            pinit(void);

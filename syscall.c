@@ -104,6 +104,8 @@ extern int sys_cap_new(void);
 extern int sys_cap_getrights(void);
 extern int sys_createat(void);
 extern int sys_ioctl(void);
+extern int sys_forkwithfds(void);
+extern int sys_getparentfds(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -133,6 +135,8 @@ static int (*syscalls[])(void) = {
 [SYS_cap_getrights]   sys_cap_getrights,
 [SYS_createat] sys_createat,
 [SYS_ioctl] sys_ioctl,
+[SYS_forkwithfds] sys_forkwithfds,
+[SYS_getparentfds] sys_getparentfds,
 };
 
 void

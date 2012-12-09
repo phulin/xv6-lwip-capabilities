@@ -26,3 +26,5 @@
 #define SYS_cap_getrights  25
 #define SYS_createat 26
 #define SYS_ioctl 27
+#define SYS_forkwithfds 28
+#define SYS_getparentfds 29

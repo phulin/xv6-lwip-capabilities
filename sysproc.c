@@ -13,6 +13,24 @@ sys_fork(void)
 }
 
 int
+sys_forkwithfds(void)
+{
+  int fds_ptr;
+  struct fdlist *fds;
+
+  if (argint(0, &fds_ptr) < 0)
+    return -1;
+  fds = (struct fdlist *)fds_ptr;
+  return forkwithfds(fds);
+}
+
+int
+sys_getparentfds(void)
+{
+  return (int)proc->parentfds;
+}
+
+int
 sys_exit(void)
 {
   exit();
