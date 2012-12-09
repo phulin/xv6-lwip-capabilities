@@ -105,6 +105,22 @@ extern int sys_cap_getrights(void);
 extern int sys_createat(void);
 extern int sys_ioctl(void);
 
+extern int sys_accept(void);
+extern int sys_bind(void);
+extern int sys_shutdown(void);
+extern int sys_getsockopt(void);
+extern int sys_setsockopt(void);
+extern int sys_sockclose(void);
+extern int sys_connect(void);
+extern int sys_listen(void);
+extern int sys_recv(void);
+extern int sys_recvfrom(void);
+extern int sys_send(void);
+extern int sys_sendto(void);
+extern int sys_socket(void);
+extern int sys_getpeername (void);
+extern int sys_getsockname (void);
+
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -133,6 +149,22 @@ static int (*syscalls[])(void) = {
 [SYS_cap_getrights]   sys_cap_getrights,
 [SYS_createat] sys_createat,
 [SYS_ioctl] sys_ioctl,
+
+[SYS_socket]  sys_socket,
+[SYS_bind]    sys_bind,
+[SYS_listen]  sys_listen,
+[SYS_accept]  sys_accept,
+[SYS_recv]    sys_recv,
+[SYS_recvfrom] sys_recvfrom,
+[SYS_send]    sys_send,
+[SYS_sendto]  sys_sendto,
+[SYS_shutdown] sys_shutdown,
+[SYS_getsockopt] sys_getsockopt,
+[SYS_setsockopt] sys_setsockopt,
+[SYS_sockclose] sys_sockclose,
+[SYS_connect] sys_connect,
+[SYS_getpeername] sys_getpeername,
+[SYS_getsockname] sys_getsockname,
 };
 
 void

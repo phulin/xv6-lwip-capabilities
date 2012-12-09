@@ -269,7 +269,7 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
+      if((p->state != RUNNABLE) && (p->state != MSLEEPING))
         continue;
 
       // Switch to chosen process.  It is the process's job
@@ -386,7 +386,8 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+    if(((p->state == SLEEPING) ||
+        (p->state == MSLEEPING)) && p->chan == chan)
       p->state = RUNNABLE;
 }
 
@@ -433,6 +434,7 @@ procdump(void)
   [UNUSED]    "unused",
   [EMBRYO]    "embryo",
   [SLEEPING]  "sleep ",
+  [MSLEEPING]  "waitsleep ",
   [RUNNABLE]  "runble",
   [RUNNING]   "run   ",
   [ZOMBIE]    "zombie"
@@ -459,4 +461,68 @@ procdump(void)
   }
 }
 
+int
+msleep_spin(void *chan, struct spinlock *lk, int timo)
+{
+    uint s = millitime();
+    uint p = s;
+    int ret = 1; // Time Out
+    s += timo;
 
+    if (proc == 0)
+        panic("msleep with proc == 0");
+    if (lk == 0)
+        panic("msleep without lock");
+
+    if (lk != &ptable.lock)
+    {
+        acquire(&ptable.lock);
+        release(lk);
+    }
+
+    proc->chan = chan;
+    proc->state = MSLEEPING;
+    while (p < s)
+    {
+        sched();
+        if (proc->state == RUNNING)
+        {
+            ret = 0;
+            break;
+        }
+        p = millitime();
+    }
+    proc->chan = 0;
+    proc->state = RUNNING;
+
+    if (lk != &ptable.lock)
+    {
+        release(&ptable.lock);
+        acquire(lk);
+    }
+    return ret;
+}
+
+// Wake up all processes sleeping on chan.
+// Proc_table_lock must be held.
+static void
+wakeup_one1(void *chan)
+{
+  struct proc *p;
+
+  for(p = proc; p < &proc[NPROC]; p++)
+    if(((p->state == SLEEPING) || 
+                (p->state == MSLEEPING)) && p->chan == chan)
+    {
+      p->state = RUNNABLE;
+      break;
+    }
+}
+
+void
+wakeup_one(void *chan)
+{
+  acquire(&ptable.lock);
+  wakeup_one1(chan);
+  release(&ptable.lock);
+}

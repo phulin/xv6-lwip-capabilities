@@ -1,57 +1,162 @@
 #include "sys_arch.h"
-#include "../../types.h"
-#include "../../defs.h"
-#include "../../sem.h"
+#include "../../../../types.h"
+#include "../../../../defs.h"
 #include "../../include/lwip/sys.h"
-#include "../../spinlock.h"
-#include "../../assert.h"
-#include "../../param.h"
-#include "../../mmu.h"
-#include "../../proc.h"
-#include "../../thread.h"
+#include "../../../../assert.h"
+#include "../../../../spinlock.h"
+#include "../../../../param.h"
+#include "../../../../mmu.h"
+#include "../../../../proc.h"
 
 #define NULL 0
 
-struct sys_timeouts sys_touts;
+struct sem {
+    struct spinlock lock;
+    int val;
+    int waiters;
+    int valid;
+};
 
-sys_sem_t sys_sem_new(u8_t count)
-{
-    sys_sem_t sem = (sys_sem_t)kmalloc(sem_size());
-    if (!sem)
-        return SYS_SEM_NULL;
-    sem_init(sem, count);
-    return sem;
+void sys_init() {
 }
 
-void sys_sem_free(sys_sem_t sem)
+int sem_destroy(sys_sem_t sem)
 {
-    sem_destroy(sem);
-    kmfree((char*)sem, sem_size());
+  cprintf("sem_destroy\n");
+    assert(sem->waiters == 0);
+    return 0;
 }
 
-void sys_sem_signal(sys_sem_t sem)
+
+void sem_post(sys_sem_t sem)
 {
-    sem_post(sem);
+  cprintf("sem_post\n");
+    acquire(&sem->lock);
+    sem->val++;
+    if ((sem->waiters) && (sem->val > 0))
+    {
+        wakeup_one(sem); // XXX maybe wakeup?
+    }
+    release(&sem->lock);
 }
 
-u32_t sys_arch_sem_wait(sys_sem_t sem, u32_t timeout)
+void sem_wait(sys_sem_t sem)
 {
-    int s = millitime(), p;
+  cprintf("sem_wait\n");
+    acquire(&sem->lock);
+    while (sem->val == 0)
+    {
+        sem->waiters++;
+        sleep(sem, &sem->lock);
+        sem->waiters--;
+    }
+    sem->val--;
+    release(&sem->lock);
+}
+
+int sem_timedwait(sys_sem_t sem, int timo)
+{
+  cprintf("sem_timedwait\n");
     int ret;
 
-    if (timeout == 0)
+    acquire(&sem->lock);
+    for (ret = 0; sem->val == 0 && ret == 0;)
     {
-        sem_wait(sem);
-        return 0; // What should I return?...
+        sem->waiters++;
+        ret = msleep_spin(sem, &sem->lock, timo);
+        sem->waiters--;
     }
+    if (sem->val > 0)
+    {
+        sem->val--;
+        ret = 0;
+    }
+    release(&sem->lock);
 
-    ret = sem_timedwait(sem, timeout);
-    
-    p = millitime() - s;
-    if (ret == 0)
-        return p;
-    else
-        return SYS_ARCH_TIMEOUT;
+    return ret;
+}
+
+int sem_trywait(sys_sem_t *sem)
+{
+  cprintf("sem_trywait\n");
+    int ret;
+
+    acquire(&(*sem)->lock);
+    if ((*sem)->val > 0)
+    {
+      (*sem)->val--;
+        ret = 1;
+    } else {
+        ret = 0;
+    }
+    release(&(*sem)->lock);
+    return ret;
+}
+
+int sem_value(sys_sem_t *sem)
+{
+  cprintf("sem_value\n");
+    int ret;
+
+    acquire(&(*sem)->lock);
+    ret = (*sem)->val;
+    release(&(*sem)->lock);
+    return ret;
+}
+
+int sem_size()
+{
+    return sizeof(struct sem);
+}
+
+err_t sys_sem_new(sys_sem_t *sem, u8_t count)
+{
+  cprintf("sys_sem_new\n");
+  *sem = (sys_sem_t) kalloc();//malloc(sem_size());
+  assert(count >= 0);
+  initlock(&(*sem)->lock, "sem lock");
+  (*sem)->val = count;
+  (*sem)->valid = 1;
+  (*sem)->waiters = 0;
+  return 0;
+}
+
+void sys_sem_free(sys_sem_t *sem)
+{
+  cprintf("sys_sem_free\n");
+  if (sem)
+    sem_destroy(*sem);
+}
+
+void sys_sem_signal(sys_sem_t *sem)
+{
+  cprintf("sys_sem_signal\n");
+  if (sem)
+    sem_post(*sem);
+}
+
+u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
+{
+  cprintf("sys_arch_sem_wait\n");
+  if (!sem)
+    return -1;
+
+  int s = millitime(), p;
+  int ret;
+
+  if (timeout == 0)
+  {
+    sem_wait(*sem);
+    return 0; // What should I return?...
+  }
+  
+  ret = sem_timedwait(*sem, timeout);
+  
+  p = millitime() - s;
+  if (ret == 0)
+    return p;
+  else
+    return SYS_ARCH_TIMEOUT;
 }
 
 #define NSLOTS 128
@@ -61,37 +166,50 @@ struct mbox {
     sys_sem_t free, queued;
     int count, head, next;
     void *slots[NSLOTS];
+  int valid;
 };
 
-sys_mbox_t sys_mbox_new(void)
+err_t sys_mbox_new(sys_mbox_t *rmbox, int size)
 {
-    sys_mbox_t mbox = (sys_mbox_t)kmalloc(sizeof(struct mbox));
-    if (!mbox)
-        return SYS_MBOX_NULL;
-    initlock(&mbox->lock, "mbox");
-    mbox->free = (sem_t *)kmalloc(sem_size());
-    mbox->queued = (sem_t *)kmalloc(sem_size());
-    sem_init(mbox->free, NSLOTS);
-    sem_init(mbox->queued, 0);
-    mbox->count = 0;
-    mbox->head = -1;
-    mbox->next = 0;
-    return mbox;
+  cprintf("sys_mbox_new\n");
+  sys_mbox_t mbox = (sys_mbox_t) kalloc();// malloc(sem_size());
+  if (!mbox)
+    return -2;
+  initlock(&mbox->lock, "mbox");
+  mbox->free = (sys_sem_t) kalloc();//malloc(sem_size());
+  mbox->queued = (sys_sem_t) kalloc();//malloc(sem_size());
+  sys_sem_new(&mbox->free, NSLOTS);
+  sys_sem_new(&mbox->queued, 0);
+  mbox->count = 0;
+  mbox->valid = 1;
+  mbox->head = -1;
+  mbox->next = 0;
+  if (rmbox)
+    *rmbox = mbox;
+
+  return 0;
 };
 
-void sys_mbox_free(sys_mbox_t mbox)
+void sys_mbox_free(sys_mbox_t *rmbox)
 {
-    acquire(&mbox->lock);
+  cprintf("sys_mbox_free\n");
+  if (!rmbox)
+    return;
+  sys_mbox_t mbox = *rmbox;
+  acquire(&mbox->lock);
     sem_destroy(mbox->free);
     sem_destroy(mbox->queued);
     if (mbox->count != 0)
         cprintf("sys_mbox_free: Warning: mbox not free\n");
     release(&mbox->lock);
-    kmfree((char*)mbox, sizeof(struct mbox));
 }
 
-void sys_mbox_post(sys_mbox_t mbox, void *msg)
+void sys_mbox_post(sys_mbox_t *rmbox, void *msg)
 {
+  cprintf("sys_mbox_post\n");
+  if (!rmbox)
+    return;
+  sys_mbox_t mbox = *rmbox;
     sem_wait(mbox->free);
     acquire(&mbox->lock);
     if (mbox->count == NSLOTS)
@@ -110,9 +228,39 @@ void sys_mbox_post(sys_mbox_t mbox, void *msg)
     release(&mbox->lock);
 }
 
-u32_t sys_arch_mbox_fetch(sys_mbox_t mbox, void **msg, u32_t timeout)
+err_t sys_mbox_trypost(sys_mbox_t *rmbox, void *msg)
 {
-    u32_t waited = sys_arch_sem_wait(mbox->queued, timeout);
+  cprintf("sys_mbox_trypost\n");
+  if (!rmbox)
+    return -2;
+  sys_mbox_t mbox = *rmbox;
+    acquire(&mbox->lock);
+    if (mbox->count == NSLOTS)
+    {
+        release(&mbox->lock);
+        return -1;
+    }
+    int slot = mbox->next;
+    mbox->next = (slot + 1) % NSLOTS;
+    mbox->slots[slot] = msg;
+    mbox->count++;
+    if (mbox->head == -1)
+        mbox->head = slot;
+
+    sem_post(mbox->queued);
+    release(&mbox->lock);
+    return 0;
+}
+
+
+
+u32_t sys_arch_mbox_fetch(sys_mbox_t *rmbox, void **msg, u32_t timeout)
+{
+  cprintf("sys_mbox_fetch\n");
+  if (!rmbox)
+    return -1;
+  sys_mbox_t mbox = *rmbox;
+    u32_t waited = sys_arch_sem_wait(&mbox->queued, timeout);
     acquire(&mbox->lock);
     if (waited == SYS_ARCH_TIMEOUT)
     {
@@ -141,23 +289,28 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t mbox, void **msg, u32_t timeout)
     return waited;
 }
 
-u32_t sys_jiffies(void)
-{
-    return millitime();
+u32_t sys_arch_mbox_tryfetch(sys_mbox_t *mbox, void **msg) {
+  cprintf("sys_arch_mbox_tryfetch\n");
+  return sys_arch_mbox_fetch(mbox, msg, 1);
 }
 
-sys_thread_t sys_thread_new(void (* thread)(void *arg), void *arg, int prio)
-{
-    return kproc_start(thread, arg, prio, 0, 0);;
+sys_thread_t sys_thread_new(const char *name, lwip_thread_fn thread, void *arg, int stacksize, int prio) {
+  return 0;
 }
 
-struct sys_timeouts *
-sys_arch_timeouts(void)
-{
-    if (cp)
-        return &cp->thr->timeouts;
-    else
-        return &sys_touts;
+int sys_sem_valid(sys_sem_t *sem) {
+  return (*sem)->valid;
 }
-    
-    
+
+void sys_sem_set_invalid(sys_sem_t *sem) {
+  (*sem)->valid = 0;
+}
+
+int sys_mbox_valid(sys_mbox_t *mbox) {
+  return (*mbox)->valid;
+}
+
+void sys_mbox_set_invalid(sys_mbox_t *mbox) {
+  (*mbox)->valid = 0;
+}
+

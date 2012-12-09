@@ -386,16 +386,16 @@ void
 ne_interrupt(ne_t* ne)
 {
   int isr;
-
+  cprintf("Got network interrupt.\n");
   while ((isr = inb(ne->base + DP_ISR)) != 0) {
     outb(ne->base + DP_ISR, isr);
     if (isr & ISR_PTX) {
       ne->sendq_tail++;
       ne->sendq[ne->sendq_tail%SENDQ_LEN].filled = FALSE;
-      //cprintf("%s: packet transmitted with no error.\n", ne->name);
+      cprintf("%s: packet transmitted with no error.\n", ne->name);
     }
     if (isr & ISR_PRX) {
-      //cprintf("%s: packet received with no error.\n", ne->name);
+      cprintf("%s: packet received with no error.\n", ne->name);
     }
 #if 0
     if (~(isr & (ISR_PTX | ISR_PRX)) != 0) {

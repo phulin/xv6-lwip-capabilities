@@ -5,13 +5,17 @@
 #include "../traps.h"
 #include "ne.h"
 #include "eth.h"
+#include "lwip/pbuf.h"
 
+static void (*if_input)(struct netif*);
 static ne_t ne;
+static struct netif* netif;
 
 void
 ethintr()
 {
   ne_interrupt(&ne);
+  (*if_input)(netif);
   return;
 }
 
@@ -40,7 +44,7 @@ ethwrite(struct inode* ip, char* p, int n)
 }
 
 void
-ethinit()
+ethinit(void (*input_handler)(struct netif *netif))
 {
   int i;
   char name[] = "eth#";
@@ -64,7 +68,8 @@ ethinit()
       break;
     }
   }
-  
+  if_input = input_handler;
+
   return;
 }
 
