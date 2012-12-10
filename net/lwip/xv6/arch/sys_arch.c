@@ -2,6 +2,7 @@
 #include "../../../../types.h"
 #include "../../../../defs.h"
 #include "../../include/lwip/sys.h"
+#include "../../include/lwip/err.h"
 #include "../../../../assert.h"
 #include "../../../../spinlock.h"
 #include "../../../../param.h"

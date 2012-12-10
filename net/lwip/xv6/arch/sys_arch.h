@@ -6,6 +6,7 @@
 #define SYS_ARCH_UNPROTECT(lev)
 
 #include "cc.h"
+#include "../../include/lwip/err.h"
 #include "../../../../thread.h"
 
 struct sem;

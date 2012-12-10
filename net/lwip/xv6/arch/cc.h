@@ -10,7 +10,6 @@ typedef signed short s16_t;
 typedef unsigned int u32_t;
 typedef signed short s32_t;
 typedef unsigned int mem_ptr_t;
-typedef s8_t err_t;
 
 #define LWIP_PROVIDE_ERRNO
 
