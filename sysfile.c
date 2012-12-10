@@ -323,6 +323,33 @@ open(char *path, int omode, struct file *basef)
 }
 
 int
+openat(struct file *df, char *path, int omode)
+{
+  char *slash, *segment_start;
+  char pathdup[512];
+  if (omode & O_CREATE)
+    return -1;
+  
+  strncpy(pathdup, path, 512);
+  pathdup[511] = '\0';
+  segment_start = pathdup;
+  if (pathdup[0] == '/')
+    return -1;
+  for (slash = pathdup; *slash != '\0'; slash++) {
+    if (*slash == '/') {
+      *slash = '\0';
+
+      if (strncmp(segment_start, "..", DIRSIZ) == 0)
+        return -1;
+
+      segment_start = slash + 1;
+    }
+  }
+
+  return open(path, omode, df);
+}
+
+int
 sys_open(void)
 {
   char *path;
@@ -332,7 +359,7 @@ sys_open(void)
     return -1;
 
   if (proc->mode == MODE_CAP)
-    panic("create: Can't be used in Capability Mode");
+    return openat(0, path, omode);
 
   return open(path, omode, 0);
 }
@@ -357,26 +384,6 @@ sys_openat(void)
   }
   if (argstr(1, &path) < 0 || argint(2, &omode) < 0)
     return -1;
-  if (omode & O_CREATE)
-    return -1;
-  
-  strncpy(pathdup, path, 512);
-  pathdup[511] = '\0';
-  segment_start = pathdup;
-  if (pathdup[0] == '/')
-    return -1;
-  for (slash = pathdup; *slash != '\0'; slash++) {
-    if (*slash == '/') {
-      *slash = '\0';
-
-      if (strncmp(segment_start, "..", DIRSIZ) == 0)
-        return -1;
-
-      segment_start = slash + 1;
-    }
-  }
-
-  return open(path, omode, df);
 }
 
 int
