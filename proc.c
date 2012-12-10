@@ -79,9 +79,8 @@ found:
 }
 
 int setupproc(struct proc* np) {
-  extern char _tcpip_thread[];
   // Copy process state from p.
-  np->pgdir = setupkvm();
+  np->pgdir = setupsuperkvm();
   
   np->sz = 0;
 
@@ -145,8 +144,6 @@ fork(void)
 {
   int i, pid;
   struct proc *np;
-
-  wakeup(22);
 
   // Allocate process.
   if((np = allocproc()) == 0)
@@ -484,6 +481,9 @@ procdump(void)
 int
 msleep_spin(void *chan, struct spinlock *lk, int timo)
 {
+  if (cpu->ncli > 1)
+    panic("About to sleep with lock\n");
+
     uint s = millitime();
     uint p = s;
     int ret = 1; // Time Out
@@ -499,12 +499,11 @@ msleep_spin(void *chan, struct spinlock *lk, int timo)
         acquire(&ptablelock);
         release(lk);
     }
-
     proc->chan = chan;
     proc->state = MSLEEPING;
     while (p < s)
     {
-        sched();
+      sched();
         if (proc->state == RUNNING)
         {
             ret = 0;
@@ -530,7 +529,7 @@ wakeup_one1(void *chan)
 {
   struct proc *p;
 
-  for(p = proc; p < &proc[NPROC]; p++)
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(((p->state == SLEEPING) || 
                 (p->state == MSLEEPING)) && p->chan == chan)
     {

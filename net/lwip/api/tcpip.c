@@ -73,7 +73,6 @@ sys_mutex_t lock_tcpip_core;
 static void
 tcpip_thread(void *arg)
 {
-  cprintf("In tcpip_thread\n");
   struct tcpip_msg *msg;
   LWIP_UNUSED_ARG(arg);
 

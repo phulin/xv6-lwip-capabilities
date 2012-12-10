@@ -14,6 +14,7 @@ static struct netif* netif;
 void
 ethintr()
 {
+  //cprintf("ethintr\n");
   ne_interrupt(&ne);
   (*if_input)(netif);
   return;
@@ -34,19 +35,19 @@ ethioctl(struct inode* ip, int request, void* p)
 int
 ethread(struct inode* ip, char* p, int n)
 {
-  cprintf("ethread\n");
+  //cprintf("ethread\n");
   return ne_pio_read(&ne, (uchar*)p, n);
 }
 
 int
 ethwrite(struct inode* ip, char* p, int n)
 {
-  cprintf("ethwrite\n");
+  //cprintf("ethwrite\n");
   return ne_pio_write(&ne, (uchar*)p, n);
 }
 
 void
-ethinit(void (*input_handler)(struct netif *netif))
+ethinit(void (*input_handler)(struct netif *netif), struct netif *nif)
 {
   int i;
   char name[] = "eth#";
@@ -71,6 +72,7 @@ ethinit(void (*input_handler)(struct netif *netif))
     }
   }
   if_input = input_handler;
+  netif = nif;
 
   return;
 }

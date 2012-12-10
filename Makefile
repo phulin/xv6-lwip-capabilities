@@ -65,7 +65,8 @@ LWIP_OBJS = \
             net/lwip/api/netbuf.o\
             net/lwip/api/sockets.o\
             net/lwip/api/tcpip.o\
-					  net/lwip/xv6/arch/sys_arch.o
+					  net/lwip/xv6/arch/sys_arch.o\
+						net/lwip/netif/slipif.o
 
 LWIP_INC = -Inet/lwip/include -Inet/lwip/xv6 -Inet/lwip/include/ipv4
 
@@ -238,7 +239,8 @@ clean:
 	.gdbinit \
 	$(UPROGS) \
 	eth/*.o eth/*.d net/*.o net/*.d
-
+	find net/lwip -iname "*.o" -exec rm {} \;
+	find net/lwip -iname "*.d" -exec rm {} \;
 # make a printout
 FILES = $(shell grep -v '^\#' runoff.list)
 PRINT = runoff.list runoff.spec README toc.hdr toc.ftr $(FILES)
@@ -263,7 +265,7 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 2
+CPUS := 1
 endif
 QEMUOPTS = -hdb fs.img xv6.img -smp $(CPUS) -m 512 $(QEMUEXTRA) -net nic,model=ne2k_pci,macaddr=52:54:00:12:34:56 -net user -redir tcp:2222::80 -net dump,file=vm0.pcap
 

@@ -48,6 +48,8 @@
 
 #if 1 /* don't build, this is only a skeleton, see previous comment */
 
+#include "types.h"
+#include "defs.h"
 #include "lwip/def.h"
 #include "lwip/mem.h"
 #include "lwip/pbuf.h"
@@ -106,7 +108,7 @@ low_level_init(struct netif *netif)
 
   cprintf("Initializing ethernet\n");
  
-  ethinit(projethif_input);
+  ethinit(projethif_input, netif);
 }
 
 /**
@@ -128,7 +130,7 @@ low_level_init(struct netif *netif)
 static err_t
 low_level_output(struct netif *netif, struct pbuf *p)
 {
-  cprintf("low_level_output\n");
+  //cprintf("low_level_output\n");
   //struct ethernetif *ethernetif = netif->state;
   struct pbuf *q;
 
@@ -163,8 +165,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
 static struct pbuf *
 low_level_input(struct netif *netif)
 {
-  cprintf("low_level_input\n");
-  struct ethernetif *ethernetif = netif->state;
+  //struct ethernetif *ethernetif = netif->state;
   struct pbuf *p, *q;
   u16_t len;
 
@@ -199,7 +200,7 @@ low_level_input(struct netif *netif)
        * actually received size. In this case, ensure the tot_len member of the
        * pbuf is the sum of the chained pbuf len members.
        */
-      memcpy(q->payload, buf[off], q->len);
+      memmove(q->payload, (void*)(&buf + off), q->len);
       off += q->len;
     }
 
@@ -212,7 +213,6 @@ low_level_input(struct netif *netif)
     LINK_STATS_INC(link.memerr);
     LINK_STATS_INC(link.drop);
   }
-
   return p;  
 }
 
@@ -240,7 +240,7 @@ projethif_input(struct netif *netif)
   if (p == NULL) return;
   /* points to packet payload, which starts with an Ethernet header */
   ethhdr = p->payload;
-
+  //cprintf("Got packet %x\n", htons(ethhdr->type));
   switch (htons(ethhdr->type)) {
   /* IP or ARP packet? */
   case ETHTYPE_IP:
@@ -256,11 +256,13 @@ projethif_input(struct netif *netif)
        pbuf_free(p);
        p = NULL;
      }
+    //cprintf("Got a usable packet");
     break;
 
   default:
     pbuf_free(p);
     p = NULL;
+    //cprintf("Got broken packet!\n");
     break;
   }
 }
@@ -280,6 +282,7 @@ projethif_input(struct netif *netif)
 err_t
 projethif_init(struct netif *netif)
 {
+  //cprintf("Initiating netif\n");
   struct projethif *ethernetif;
 
   LWIP_ASSERT("netif != NULL", (netif != NULL));

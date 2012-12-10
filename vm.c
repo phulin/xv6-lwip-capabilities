@@ -143,6 +143,25 @@ setupkvm(void)
   return pgdir;
 }
 
+// Set up user kernel part of a page table.
+pde_t*
+setupsuperkvm(void)
+{
+  pde_t *pgdir;
+  struct kmap *k;
+
+  if((pgdir = (pde_t*)kalloc()) == 0)
+    return 0;
+  memset(pgdir, 0, PGSIZE);
+  if (p2v(PHYSTOP) > (void*)DEVSPACE)
+    panic("PHYSTOP too high");
+  for(k = kmap; k < &kmap[NELEM(kmap)]; k++)
+    if(mappages(pgdir, k->virt, k->phys_end - k->phys_start, 
+                (uint)k->phys_start, k->perm | PTE_U | PTE_W) < 0)
+      return 0;
+  return pgdir;
+}
+
 // Allocate one page table for the machine for the kernel address
 // space for scheduler processes.
 void

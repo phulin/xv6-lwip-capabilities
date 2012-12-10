@@ -71,7 +71,6 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_ETH:
-  cprintf("Got trap %d\n", tf->trapno);
     ethintr();
     lapiceoi();
     break;
@@ -84,7 +83,6 @@ trap(struct trapframe *tf)
    
   //PAGEBREAK: 13
   default:
-  cprintf("Got trap %d\n", tf->trapno);
     if(proc == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.
       cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",

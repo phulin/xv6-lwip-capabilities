@@ -22,8 +22,10 @@ void            consoleintr(int(*)(void));
 void            panic(char*) __attribute__((noreturn));
 
 // net/eth.c
-void            ethinit(void (*)(struct netif *netif));
+void            ethinit(void (*)(struct netif *netif), struct netif*);
 void            ethintr(void);
+int             ethread(struct inode*, char*, int);
+int             ethwrite(struct inode*, char*, int);
 
 // exec.c
 int             exec(char*, char**);
