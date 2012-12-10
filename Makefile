@@ -1,4 +1,5 @@
 OBJS = \
+	assert.o\
 	bio.o\
 	console.o\
 	exec.o\
@@ -15,6 +16,7 @@ OBJS = \
 	picirq.o\
 	pipe.o\
 	proc.o\
+	projethif.o\
 	spinlock.o\
 	string.o\
 	swtch.o\
@@ -28,8 +30,45 @@ OBJS = \
 	vectors.o\
 	vm.o\
 	capability.o\
+	thread.o\
 	eth/ne.o\
 	eth/eth.o\
+	${LWIP_OBJS}
+
+LWIP_OBJS = \
+						net/lwip/core/def.o\
+            net/lwip/netif/etharp.o\
+            net/lwip/netif/ethernetif.o\
+	          net/lwip/core/ipv4/ip_addr.o\
+            net/lwip/core/ipv4/icmp.o\
+            net/lwip/core/ipv4/ip.o\
+            net/lwip/core/ipv4/inet.o\
+            net/lwip/core/ipv4/inet_chksum.o\
+            net/lwip/core/ipv4/ip_frag.o\
+            net/lwip/core/init.o\
+            net/lwip/core/mem.o\
+            net/lwip/core/memp.o\
+            net/lwip/core/netif.o\
+            net/lwip/core/pbuf.o\
+            net/lwip/core/raw.o\
+            net/lwip/core/stats.o\
+            net/lwip/core/sys.o\
+            net/lwip/core/tcp.o\
+            net/lwip/core/tcp_out.o\
+            net/lwip/core/tcp_in.o\
+            net/lwip/core/timers.o\
+            net/lwip/core/udp.o\
+            net/lwip/core/dhcp.o\
+            net/lwip/api/api_lib.o\
+            net/lwip/api/api_msg.o\
+            net/lwip/api/err.o\
+            net/lwip/api/netbuf.o\
+            net/lwip/api/sockets.o\
+            net/lwip/api/tcpip.o\
+					  net/lwip/xv6/arch/sys_arch.o
+
+LWIP_INC = -Inet/lwip/include -Inet/lwip/xv6 -Inet/lwip/include/ipv4
+
 
 # Cross-compiling (e.g., on Mac OS X)
 #TOOLPREFIX = i386-jos-elf-
@@ -77,7 +116,7 @@ LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 #CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror -fno-omit-frame-pointer
-CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -Wall -MD -ggdb -m32 -Werror -fno-omit-frame-pointer
+CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -Wall -MD ${LWIP_INC} -ggdb -m32 -fno-omit-frame-pointer
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 ASFLAGS = -m32 -gdwarf-2 -Wa,-divide
 # FreeBSD ld wants ``elf_i386_fbsd''
@@ -85,7 +124,7 @@ LDFLAGS += -m $(shell $(LD) -V | grep elf_i386 2>/dev/null)
 
 .PHONY: all
 all: xv6.img fs.img
-	
+
 xv6.img: bootblock kernel
 	dd if=/dev/zero of=xv6.img count=10000
 	dd if=bootblock of=xv6.img conv=notrunc
@@ -139,7 +178,7 @@ tags: $(OBJS) entryother.S _init
 vectors.S: vectors.pl
 	perl vectors.pl > vectors.S
 
-ULIB = ulib.o usys.o printf.o umalloc.o net/net.o
+ULIB = ulib.o usys.o printf.o umalloc.o net/net.o net/lwip/core/ipv4/inet.o net/lwip/core/def.o net/lwip/core/ipv4/ip_addr.o
 
 # DO NOT remove '*.o', so 'make qemu' will work out.
 .PRECIOUS: %.o
@@ -150,8 +189,8 @@ _%: %.o $(ULIB)
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
 _forktest: forktest.o $(ULIB)
-	# forktest has less library code linked in - needs to be small
-	# in order to be able to max out the proc table.
+# forktest has less library code linked in - needs to be small
+# in order to be able to max out the proc table.
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o _forktest forktest.o ulib.o usys.o
 	$(OBJDUMP) -S _forktest > forktest.asm
 
@@ -167,6 +206,7 @@ mkfs: mkfs.c fs.h
 UPROGS=\
 	_captest\
 	_cat\
+	_catnet\
 	_echo\
 	_forktest\
 	_grep\
@@ -184,6 +224,8 @@ UPROGS=\
 	_grader\
 	_ethtest\
 	_usertests2\
+	_tcpecho\
+	_tcpout
 
 fs.img: mkfs script.sh README $(UPROGS)
 	./mkfs fs.img script.sh README $(UPROGS)
@@ -212,8 +254,8 @@ print: xv6.pdf
 
 bochs : fs.img xv6.img
 	sudo bochs -q
-	#if [ ! -e .bochsrc ]; then ln -s dot-bochsrc .bochsrc; fi
-	#bochs -q
+#	if [ ! -e .bochsrc ]; then ln -s dot-bochsrc .bochsrc; fi
+#	bochs -q
 
 # try to generate a unique GDB port
 GDBPORT = $(shell expr `id -u` % 5000 + 25000)
@@ -224,7 +266,7 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 ifndef CPUS
 CPUS := 2
 endif
-QEMUOPTS = -hdb fs.img xv6.img -smp $(CPUS) -m 512 $(QEMUEXTRA) -net nic,model=ne2k_pci,macaddr=52:54:00:12:34:56 -net user -net dump,file=vm0.pcap
+QEMUOPTS = -hdb fs.img xv6.img -smp $(CPUS) -m 512 $(QEMUEXTRA) -net nic,model=ne2k_pci,macaddr=52:54:00:12:34:56 -net user -redir tcp:2222::80 -net dump,file=vm0.pcap
 
 qemu: fs.img xv6.img
 	$(QEMU) -serial mon:stdio $(QEMUOPTS)

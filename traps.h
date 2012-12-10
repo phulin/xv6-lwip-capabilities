@@ -34,8 +34,8 @@
 #define IRQ_COM1         4
 // In BOCHS, IRQ change to 5, avoid conflicts!!!
 // 
-#define IRQ_ETH         5      
-//#define IRQ_ETH         11      // In QEMU, IRQ is 11 !!!
+//#define IRQ_ETH         5      
+#define IRQ_ETH         9      // In QEMU, IRQ is 11 !!!
 #define IRQ_IDE         14
 #define IRQ_ERROR       19
 #define IRQ_SPURIOUS    31

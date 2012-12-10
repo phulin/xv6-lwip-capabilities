@@ -1,8 +1,8 @@
 #ifndef XV6_LWIP_CC_H_
 #define XV6_LWIP_CC_H_
- 
-#include "../../../assert.h"
- 
+
+#include <../../../../assert.h> 
+
 typedef unsigned char u8_t;
 typedef signed char s8_t;
 typedef unsigned short u16_t;
@@ -10,6 +10,7 @@ typedef signed short s16_t;
 typedef unsigned int u32_t;
 typedef signed short s32_t;
 typedef unsigned int mem_ptr_t;
+typedef s8_t err_t;
 
 #define LWIP_PROVIDE_ERRNO
 

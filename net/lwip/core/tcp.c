@@ -869,6 +869,7 @@ tcp_slowtmr(void)
               / TCP_SLOW_INTERVAL)
 #endif /* LWIP_TCP_KEEPALIVE */
       {
+        cprintf("About to enter KA\n");
         tcp_keepalive(pcb);
         pcb->keep_cnt_sent++;
       }

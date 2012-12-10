@@ -7,13 +7,15 @@
 #include "proc.h"
 #include "spinlock.h"
 #include "capability.h"
+#include "thread.h"
 
-struct {
-  struct spinlock lock;
+static struct proctable {
   struct proc proc[NPROC];
 } ptable;
 
-static struct proc *initproc;
+struct spinlock ptablelock;
+
+struct proc *initproc;
 
 int nextpid = 1;
 extern void forkret(void);
@@ -24,7 +26,7 @@ static void wakeup1(void *chan);
 void
 pinit(void)
 {
-  initlock(&ptable.lock, "ptable");
+  initlock(&ptablelock, "ptable");
 }
 
 //PAGEBREAK: 32
@@ -32,23 +34,24 @@ pinit(void)
 // If found, change state to EMBRYO and initialize
 // state required to run in the kernel.
 // Otherwise return 0.
-static struct proc*
+struct proc*
 allocproc(void)
 {
   struct proc *p;
   char *sp;
 
-  acquire(&ptable.lock);
+  acquire(&ptablelock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == UNUSED)
       goto found;
-  release(&ptable.lock);
+  release(&ptablelock);
   return 0;
 
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  release(&ptable.lock);
+  p->thr = 0;
+  release(&ptablelock);
 
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
@@ -73,6 +76,16 @@ found:
   p->mode = MODE_NORM;
 
   return p;
+}
+
+int setupproc(struct proc* np) {
+  extern char _tcpip_thread[];
+  // Copy process state from p.
+  np->pgdir = setupkvm();
+  
+  np->sz = 0;
+
+  return 0;
 }
 
 //PAGEBREAK: 32
@@ -133,6 +146,8 @@ fork(void)
   int i, pid;
   struct proc *np;
 
+  wakeup(22);
+
   // Allocate process.
   if((np = allocproc()) == 0)
     return -1;
@@ -157,7 +172,8 @@ fork(void)
     if(proc->ofile[i])
       np->ofile[i] = filedup(proc->ofile[i]);
   np->cwd = idup(proc->cwd);
- 
+  np->thr = proc->thr;
+
   pid = np->pid;
   np->state = RUNNABLE;
   safestrcpy(np->name, proc->name, sizeof(proc->name));
@@ -205,7 +221,7 @@ exit(void)
   iput(proc->cwd);
   proc->cwd = 0;
 
-  acquire(&ptable.lock);
+  acquire(&ptablelock);
 
   // Parent might be sleeping in wait().
   wakeup1(proc->parent);
@@ -219,7 +235,11 @@ exit(void)
     }
   }
 
+  if (p->thr)
+    kproc_free(p->thr);
+
   // Jump into the scheduler, never to return.
+  p->thr = 0;
   proc->state = ZOMBIE;
   sched();
   panic("zombie exit");
@@ -233,7 +253,7 @@ wait(void)
   struct proc *p;
   int havekids, pid;
 
-  acquire(&ptable.lock);
+  acquire(&ptablelock);
   for(;;){
     // Scan through table looking for zombie children.
     havekids = 0;
@@ -252,19 +272,19 @@ wait(void)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
-        release(&ptable.lock);
+        release(&ptablelock);
         return pid;
       }
     }
 
     // No point waiting if we don't have any children.
     if(!havekids || proc->killed){
-      release(&ptable.lock);
+      release(&ptablelock);
       return -1;
     }
 
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
-    sleep(proc, &ptable.lock);  //DOC: wait-sleep
+    sleep(proc, &ptablelock);  //DOC: wait-sleep
   }
 }
 
@@ -286,13 +306,13 @@ scheduler(void)
     sti();
 
     // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
+    acquire(&ptablelock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
+      if((p->state != RUNNABLE) && (p->state != MSLEEPING))
         continue;
 
       // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
+      // to release ptablelock and then reacquire it
       // before jumping back to us.
       proc = p;
       switchuvm(p);
@@ -304,20 +324,20 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       proc = 0;
     }
-    release(&ptable.lock);
+    release(&ptablelock);
 
   }
 }
 
-// Enter scheduler.  Must hold only ptable.lock
+// Enter scheduler.  Must hold only ptablelock
 // and have changed proc->state.
 void
 sched(void)
 {
   int intena;
 
-  if(!holding(&ptable.lock))
-    panic("sched ptable.lock");
+  if(!holding(&ptablelock))
+    panic("sched ptablelock");
   if(cpu->ncli != 1)
     panic("sched locks");
   if(proc->state == RUNNING)
@@ -333,10 +353,10 @@ sched(void)
 void
 yield(void)
 {
-  acquire(&ptable.lock);  //DOC: yieldlock
+  acquire(&ptablelock);  //DOC: yieldlock
   proc->state = RUNNABLE;
   sched();
-  release(&ptable.lock);
+  release(&ptablelock);
 }
 
 // A fork child's very first scheduling by scheduler()
@@ -345,8 +365,8 @@ void
 forkret(void)
 {
   static int first = 1;
-  // Still holding ptable.lock from scheduler.
-  release(&ptable.lock);
+  // Still holding ptablelock from scheduler.
+  release(&ptablelock);
 
   if (first) {
     // Some initialization functions must be run in the context
@@ -370,14 +390,14 @@ sleep(void *chan, struct spinlock *lk)
   if(lk == 0)
     panic("sleep without lk");
 
-  // Must acquire ptable.lock in order to
+  // Must acquire ptablelock in order to
   // change p->state and then call sched.
-  // Once we hold ptable.lock, we can be
+  // Once we hold ptablelock, we can be
   // guaranteed that we won't miss any wakeup
-  // (wakeup runs with ptable.lock locked),
+  // (wakeup runs with ptablelock locked),
   // so it's okay to release lk.
-  if(lk != &ptable.lock){  //DOC: sleeplock0
-    acquire(&ptable.lock);  //DOC: sleeplock1
+  if(lk != &ptablelock){  //DOC: sleeplock0
+    acquire(&ptablelock);  //DOC: sleeplock1
     release(lk);
   }
 
@@ -390,8 +410,8 @@ sleep(void *chan, struct spinlock *lk)
   proc->chan = 0;
 
   // Reacquire original lock.
-  if(lk != &ptable.lock){  //DOC: sleeplock2
-    release(&ptable.lock);
+  if(lk != &ptablelock){  //DOC: sleeplock2
+    release(&ptablelock);
     acquire(lk);
   }
 }
@@ -405,7 +425,8 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+    if(((p->state == SLEEPING) ||
+        (p->state == MSLEEPING)) && p->chan == chan)
       p->state = RUNNABLE;
 }
 
@@ -413,9 +434,9 @@ wakeup1(void *chan)
 void
 wakeup(void *chan)
 {
-  acquire(&ptable.lock);
+  acquire(&ptablelock);
   wakeup1(chan);
-  release(&ptable.lock);
+  release(&ptablelock);
 }
 
 // Kill the process with the given pid.
@@ -426,18 +447,18 @@ kill(int pid)
 {
   struct proc *p;
 
-  acquire(&ptable.lock);
+  acquire(&ptablelock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
         p->state = RUNNABLE;
-      release(&ptable.lock);
+      release(&ptablelock);
       return 0;
     }
   }
-  release(&ptable.lock);
+  release(&ptablelock);
   return -1;
 }
 
@@ -452,6 +473,7 @@ procdump(void)
   [UNUSED]    "unused",
   [EMBRYO]    "embryo",
   [SLEEPING]  "sleep ",
+  [MSLEEPING]  "waitsleep ",
   [RUNNABLE]  "runble",
   [RUNNING]   "run   ",
   [ZOMBIE]    "zombie"
@@ -478,4 +500,68 @@ procdump(void)
   }
 }
 
+int
+msleep_spin(void *chan, struct spinlock *lk, int timo)
+{
+    uint s = millitime();
+    uint p = s;
+    int ret = 1; // Time Out
+    s += timo;
 
+    if (proc == 0)
+        panic("msleep with proc == 0");
+    if (lk == 0)
+        panic("msleep without lock");
+
+    if (lk != &ptablelock)
+    {
+        acquire(&ptablelock);
+        release(lk);
+    }
+
+    proc->chan = chan;
+    proc->state = MSLEEPING;
+    while (p < s)
+    {
+        sched();
+        if (proc->state == RUNNING)
+        {
+            ret = 0;
+            break;
+        }
+        p = millitime();
+    }
+    proc->chan = 0;
+    proc->state = RUNNING;
+
+    if (lk != &ptablelock)
+    {
+        release(&ptablelock);
+        acquire(lk);
+    }
+    return ret;
+}
+
+// Wake up all processes sleeping on chan.
+// Proc_table_lock must be held.
+static void
+wakeup_one1(void *chan)
+{
+  struct proc *p;
+
+  for(p = proc; p < &proc[NPROC]; p++)
+    if(((p->state == SLEEPING) || 
+                (p->state == MSLEEPING)) && p->chan == chan)
+    {
+      p->state = RUNNABLE;
+      break;
+    }
+}
+
+void
+wakeup_one(void *chan)
+{
+  acquire(&ptablelock);
+  wakeup_one1(chan);
+  release(&ptablelock);
+}

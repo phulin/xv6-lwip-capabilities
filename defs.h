@@ -8,6 +8,7 @@ struct proc;
 struct spinlock;
 struct stat;
 struct superblock;
+struct netif;
 
 // bio.c
 void            binit(void);
@@ -22,7 +23,7 @@ void            consoleintr(int(*)(void));
 void            panic(char*) __attribute__((noreturn));
 
 // net/eth.c
-void            ethinit(void);
+void            ethinit(void (*)(struct netif *netif));
 void            ethintr(void);
 
 // exec.c
@@ -110,6 +111,7 @@ int             pipewrite(struct pipe*, char*, int);
 //PAGEBREAK: 16
 // proc.c
 struct proc*    copyproc(struct proc*);
+struct proc*    allocproc(void);
 void            exit(void);
 int             fork(void);
 int             forkwithfds(struct fdlist*);
@@ -120,9 +122,11 @@ void            procdump(void);
 void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
 void            sleep(void*, struct spinlock*);
+int             msleep_spin(void*, struct spinlock*, int);
 void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
+void            wakeup_one(void*);
 void            yield(void);
 
 // swtch.S
@@ -160,6 +164,7 @@ int argfd(int, int*, struct file**);
 
 // timer.c
 void            timerinit(void);
+int             millitime(void);
 
 // trap.c
 void            idtinit(void);
@@ -171,6 +176,9 @@ extern struct spinlock tickslock;
 void            uartinit(void);
 void            uartintr(void);
 void            uartputc(int);
+
+// ulib.c
+void* malloc(uint);
 
 // vm.c
 void            seginit(void);

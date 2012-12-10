@@ -77,8 +77,8 @@ getip(int fd)
   printf(1, "write %d byte\n", write(fd, buf, size));
   //dump(buf, size);
 
-  while ((size = read(fd, buf, ETH_MAX_SIZE)) == 0)
-    sleep(10);
+  //while ((size = read(fd, buf, ETH_MAX_SIZE)) == 0)
+  //  sleep(10);
   if (size == -1)
     return;
     

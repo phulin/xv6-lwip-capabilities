@@ -5,11 +5,17 @@
 #include "mmu.h"
 #include "proc.h"
 #include "x86.h"
+#include "net/lwip/include/ipv4/lwip/ip_addr.h"
+#include "net/lwip/include/ipv4/lwip/ip.h"
+#include "eth/eth.h"
 
 static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
 extern pde_t *kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
+static void  projethif_init(struct netif *netif);
+extern struct netif* netif;
+
 
 // Bootstrap processor starts running C code here.
 // Allocate a real stack and switch to it, first
@@ -33,7 +39,26 @@ main(void)
   fileinit();      // file table
   iinit();         // inode cache
   ideinit();       // disk
-  ethinit();       // ethernet
+
+  memp_init();
+  mem_init();
+  netif_init();
+  pbuf_init();
+  tcpip_init(0, 0);
+
+  struct ip_addr ipaddr;
+  IP4_ADDR(&ipaddr, 10, 0, 2, 15);
+  struct ip_addr netmask;
+  IP4_ADDR(&netmask, 255, 0, 0, 0);
+  struct ip_addr gw;
+  IP4_ADDR(&gw, 10, 0, 2, 2);
+
+  netif = (struct netif*) kalloc();
+
+  netif_add(netif, &ipaddr, &netmask, &gw, NULL, projethif_init, ip_input);
+  netif_set_up(netif);
+  netif_set_default(netif);
+
   if(!ismp)
     timerinit();   // uniprocessor timer
   startothers();   // start other processors

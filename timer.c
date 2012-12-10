@@ -30,3 +30,8 @@ timerinit(void)
   outb(IO_TIMER1, TIMER_DIV(100) / 256);
   picenable(IRQ_TIMER);
 }
+
+int millitime(void)
+{
+  return ticks * 10;
+}
