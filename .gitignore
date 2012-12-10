@@ -18,3 +18,4 @@ mkfs
 Makefile.qemu
 .bochsrc
 *.swp
+vm0.pcap
