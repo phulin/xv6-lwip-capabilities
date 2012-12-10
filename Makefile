@@ -183,6 +183,7 @@ UPROGS=\
 	_zombie\
 	_grader\
 	_ethtest\
+	_usertests2\
 
 fs.img: mkfs script.sh README $(UPROGS)
 	./mkfs fs.img script.sh README $(UPROGS)

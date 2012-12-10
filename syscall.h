@@ -28,3 +28,4 @@
 #define SYS_ioctl 27
 #define SYS_forkwithfds 28
 #define SYS_getparentfds 29
+#define SYS_openat 30

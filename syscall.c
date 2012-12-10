@@ -106,6 +106,7 @@ extern int sys_createat(void);
 extern int sys_ioctl(void);
 extern int sys_forkwithfds(void);
 extern int sys_getparentfds(void);
+extern int sys_openat(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -137,6 +138,7 @@ static int (*syscalls[])(void) = {
 [SYS_ioctl] sys_ioctl,
 [SYS_forkwithfds] sys_forkwithfds,
 [SYS_getparentfds] sys_getparentfds,
+[SYS_openat] sys_openat,
 };
 
 void

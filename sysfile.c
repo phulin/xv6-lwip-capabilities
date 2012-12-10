@@ -353,10 +353,11 @@ sys_openat(void)
     return -1;
   
   strncpy(pathdup, path, 512);
+  pathdup[511] = '\0';
   segment_start = pathdup;
   if (pathdup[0] == '/')
     return -1;
-  for (slash = pathdup; slash != '\0'; slash++) {
+  for (slash = pathdup; *slash != '\0'; slash++) {
     if (*slash == '/') {
       *slash = '\0';
 
