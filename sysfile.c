@@ -328,11 +328,11 @@ sys_open(void)
   char *path;
   int omode;
 
-  if (proc->mode == MODE_CAP)
-    panic("create: Can't be used in Capability Mode");
-
   if(argstr(0, &path) < 0 || argint(1, &omode) < 0)
     return -1;
+
+  if (proc->mode == MODE_CAP)
+    panic("create: Can't be used in Capability Mode");
 
   return open(path, omode, 0);
 }
@@ -341,13 +341,21 @@ int
 sys_openat(void)
 {
   char *path;
-  int omode;
+  int omode, dfd;
   char *slash, *segment_start;
   struct file *df;
   char pathdup[512];
 
-  if (argfd(0, 0, &df) < 0 || argstr(1, &path) < 0
-      || argint(2, &omode) < 0)
+  if (argint(0, &dfd) < 0)
+    return -1;
+  if (dfd < 0) {
+    df = 0;
+  } else {
+    if (argfd(0, 0, &df) < 0) {
+      return -1;
+    }
+  }
+  if (argstr(1, &path) < 0 || argint(2, &omode) < 0)
     return -1;
   if (omode & O_CREATE)
     return -1;
