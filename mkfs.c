@@ -115,7 +115,7 @@ int
 main(int argc, char *argv[])
 {
   int i;
-  uint rootino, binino;
+  uint rootino, binino, tmpino;
   char buf[512];
   struct dinode din;
 
@@ -160,19 +160,26 @@ main(int argc, char *argv[])
   assert(rootino == ROOTINO);
 
   binino = ialloc(T_DIR);
+  tmpino = ialloc(T_DIR);
 
   adddir(rootino, ".", rootino);
   adddir(rootino, "..", rootino);
   adddir(binino, ".", binino);
   adddir(binino, "..", rootino);
   adddir(rootino, "bin", binino);
+  adddir(tmpino, ".", tmpino);
+  adddir(tmpino, "..", rootino);
+  adddir(rootino, "bin", tmpino);
 
   rinode(rootino, &din);
-  din.nlink = xshort(2);
+  din.nlink = xshort(3);
   winode(rootino, &din);
   rinode(binino, &din);
   din.nlink = xshort(2);
   winode(binino, &din);
+  rinode(tmpino, &din);
+  din.nlink = xshort(2);
+  winode(tmpino, &din);
 
   for(i = 2; i < argc; i++){
     assert(index(argv[i], '/') == 0);
@@ -189,6 +196,7 @@ main(int argc, char *argv[])
 
   fixsize(rootino);
   fixsize(binino);
+  fixsize(tmpino);
 
   balloc(usedblocks);
 
