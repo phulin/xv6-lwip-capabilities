@@ -369,9 +369,7 @@ sys_openat(void)
 {
   char *path;
   int omode, dfd;
-  char *slash, *segment_start;
   struct file *df;
-  char pathdup[512];
 
   if (argint(0, &dfd) < 0)
     return -1;
@@ -384,6 +382,8 @@ sys_openat(void)
   }
   if (argstr(1, &path) < 0 || argint(2, &omode) < 0)
     return -1;
+
+  return openat(df, path, omode);
 }
 
 int
