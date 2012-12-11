@@ -22,6 +22,7 @@ struct execcmd {
   int type;
   char *argv[MAXARGS];
   char *eargv[MAXARGS];
+  int fd;
 };
 
 struct redircmd {
@@ -74,9 +75,9 @@ runcmd(struct cmd *cmd)
 
   case EXEC:
     ecmd = (struct execcmd*)cmd;
-    if(ecmd->argv[0] == 0)
+    if(ecmd->argv[0] == 0 || ecmd->fd < 0)
       exit();
-    exec(ecmd->argv[0], ecmd->argv);
+    fexec(ecmd->fd, ecmd->argv);
     printf(2, "exec %s failed\n", ecmd->argv[0]);
     break;
 
@@ -219,6 +220,7 @@ execcmd(void)
   cmd = malloc(sizeof(*cmd));
   memset(cmd, 0, sizeof(*cmd));
   cmd->type = EXEC;
+  cmd->fd = -1;
   return (struct cmd*)cmd;
 }
 
@@ -434,8 +436,8 @@ parseblock(char **ps, char *es)
 struct cmd*
 parseexec(char **ps, char *es)
 {
-  char *q, *eq;
-  int tok, argc;
+  char *q, *eq, path[512];
+  int tok, argc, fd, len, i;
   struct execcmd *cmd;
   struct cmd *ret;
   
@@ -461,6 +463,18 @@ parseexec(char **ps, char *es)
   }
   cmd->argv[argc] = 0;
   cmd->eargv[argc] = 0;
+
+  len = cmd->eargv[0] - cmd->argv[0];
+  for(i = 0; i < len && i < 511; i++)
+    path[i] = cmd->argv[0][i];
+  path[i] = '\0';
+
+  if((fd = open(path, O_RDONLY)) < 0){
+    printf(2, "Couldn't open command.\n");
+    return 0;
+  }
+  cmd->fd = fd;
+
   return ret;
 }
 
