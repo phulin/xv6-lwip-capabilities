@@ -3,6 +3,7 @@
 #include "types.h"
 #include "user.h"
 #include "fcntl.h"
+#include "capability.h"
 
 // Parsed command representation
 #define EXEC  1
@@ -142,6 +143,19 @@ getcmd(char *buf, int nbuf)
 }
 
 int
+startswith(char *haystack, char *needle)
+{
+  int i, len;
+
+  len = strlen(needle);
+  for (i = 0; i < len; i++) {
+    if (haystack[i] == '\0' || haystack[i] != needle[i])
+      return 0;
+  }
+  return 1;
+}
+
+int
 main(void)
 {
   static char buf[100];
@@ -157,12 +171,16 @@ main(void)
   
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
-    if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
+    if(startswith(buf, "cd ")){
       // Clumsy but will have to do for now.
       // Chdir has no effect on the parent if run in the child.
       buf[strlen(buf)-1] = 0;  // chop \n
       if(chdir(buf+3) < 0)
         printf(2, "cannot cd %s\n", buf+3);
+      continue;
+    }
+    if(startswith(buf, "capenter")){
+      cap_enter();
       continue;
     }
     if(fork1() == 0)

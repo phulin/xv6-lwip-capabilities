@@ -57,15 +57,67 @@ xint(uint x)
   return y;
 }
 
+// Don't call this directly.
+void
+adddirent(uint dirino, char *name, char *path, uint inum)
+{
+  int fd, cc;
+  struct dirent de;
+  char buf[512];
+
+  if (path)
+    inum = ialloc(T_FILE);
+
+  bzero(&de, sizeof(de));
+  de.inum = xshort(inum);
+  strncpy(de.name, name, DIRSIZ);
+  iappend(dirino, &de, sizeof(de));
+
+  if (path) {
+    if ((fd = open(path, 0)) < 0) {
+      perror(path);
+      exit(1);
+    }
+
+    while ((cc = read(fd, buf, sizeof(buf))) > 0)
+      iappend(inum, buf, cc);
+
+    close(fd);
+  }
+}
+
+void
+addfile(uint dirino, char *name, char *path)
+{
+  adddirent(dirino, name, path, 0);
+}
+
+void
+adddir(uint dirino, char *name, uint targetino)
+{
+  adddirent(dirino, name, 0, targetino);
+}
+
+void
+fixsize(uint dirino)
+{
+  uint off;
+  struct dinode din;
+
+  rinode(dirino, &din);
+  off = xint(din.size);
+  off = ((off/BSIZE) + 1) * BSIZE;
+  din.size = xint(off);
+  winode(dirino, &din);
+}
+
 int
 main(int argc, char *argv[])
 {
-  int i, cc, fd;
-  uint rootino, inum, off;
-  struct dirent de;
+  int i;
+  uint rootino, binino;
   char buf[512];
   struct dinode din;
-
 
   static_assert(sizeof(int) == 4, "Integers must be 4 bytes!");
 
@@ -107,50 +159,36 @@ main(int argc, char *argv[])
   rootino = ialloc(T_DIR);
   assert(rootino == ROOTINO);
 
-  bzero(&de, sizeof(de));
-  de.inum = xshort(rootino);
-  strcpy(de.name, ".");
-  iappend(rootino, &de, sizeof(de));
+  binino = ialloc(T_DIR);
 
-  bzero(&de, sizeof(de));
-  de.inum = xshort(rootino);
-  strcpy(de.name, "..");
-  iappend(rootino, &de, sizeof(de));
+  adddir(rootino, ".", rootino);
+  adddir(rootino, "..", rootino);
+  adddir(binino, ".", binino);
+  adddir(binino, "..", rootino);
+  adddir(rootino, "bin", binino);
+
+  rinode(rootino, &din);
+  din.nlink = xshort(2);
+  winode(rootino, &din);
+  rinode(binino, &din);
+  din.nlink = xshort(2);
+  winode(binino, &din);
 
   for(i = 2; i < argc; i++){
     assert(index(argv[i], '/') == 0);
 
-    if((fd = open(argv[i], 0)) < 0){
-      perror(argv[i]);
-      exit(1);
-    }
-    
     // Skip leading _ in name when writing to file system.
     // The binaries are named _rm, _cat, etc. to keep the
     // build operating system from trying to execute them
     // in place of system binaries like rm and cat.
     if(argv[i][0] == '_')
-      ++argv[i];
-
-    inum = ialloc(T_FILE);
-
-    bzero(&de, sizeof(de));
-    de.inum = xshort(inum);
-    strncpy(de.name, argv[i], DIRSIZ);
-    iappend(rootino, &de, sizeof(de));
-
-    while((cc = read(fd, buf, sizeof(buf))) > 0)
-      iappend(inum, buf, cc);
-
-    close(fd);
+      addfile(binino, argv[i] + 1, argv[i]);
+    else
+      addfile(rootino, argv[i], argv[i]);
   }
 
-  // fix size of root inode dir
-  rinode(rootino, &din);
-  off = xint(din.size);
-  off = ((off/BSIZE) + 1) * BSIZE;
-  din.size = xint(off);
-  winode(rootino, &din);
+  fixsize(rootino);
+  fixsize(binino);
 
   balloc(usedblocks);
 
