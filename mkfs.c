@@ -169,7 +169,7 @@ main(int argc, char *argv[])
   adddir(rootino, "bin", binino);
   adddir(tmpino, ".", tmpino);
   adddir(tmpino, "..", rootino);
-  adddir(rootino, "bin", tmpino);
+  adddir(rootino, "tmp", tmpino);
 
   rinode(rootino, &din);
   din.nlink = xshort(3);
