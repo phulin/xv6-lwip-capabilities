@@ -186,7 +186,7 @@ main(int argc, char *argv[])
   winode(tmpino, &din);
   rinode(secretino, &din);
   din.nlink = xshort(2);
-  winode(secretinoo, &din);
+  winode(secretino, &din);
 
   for(i = 2; i < argc; i++){
     assert(index(argv[i], '/') == 0);
