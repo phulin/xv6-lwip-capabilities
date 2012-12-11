@@ -16,7 +16,6 @@ extern struct proc *initproc;
 kproc_t kproc_start(void (* proc)(void *arg), 
         void *arg, int prio, void *data, char *name)
 {
-  cprintf("Trying to create thread for %s for %x and arg %x and exit %x\n", name, proc, arg, exit);
     kproc_t thr = (kproc_t)kalloc();
     if (!thr)
         return NULL;
@@ -39,7 +38,7 @@ kproc_t kproc_start(void (* proc)(void *arg),
         safestrcpy(np->name,"[kernel thread]",sizeof(np->name));
     else
         safestrcpy(np->name, name, sizeof(np->name));
-    cprintf("Trying to move %x to context\n", (uint)thread_wrap);
+
     char *sp;
     sp = np->kstack + KSTACKSIZE - 1;
 
@@ -58,7 +57,7 @@ kproc_t kproc_start(void (* proc)(void *arg),
 
     np->cwd = namei("/");
     np->state = RUNNABLE;
-  cprintf("Created: Trying to create thread for %s", name);
+
     return thr;
 }
 
@@ -71,7 +70,6 @@ void kproc_free(kproc_t thread)
 
 void thread_wrap(void (* thread)(void *arg), void *arg)
 {
-  cprintf("Jumping from wrap to thread %x\n", thread);
     release(&ptablelock);
     thread(arg);
 }

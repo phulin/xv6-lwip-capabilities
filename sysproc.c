@@ -206,6 +206,7 @@ int sys_listen(void)
     if ((argint(0, &s)<0) ||
         (argint(1, &backlog)<0))
         return -1;
+
     return lwip_listen(s, backlog);
 }
 
@@ -252,7 +253,9 @@ int sys_send(void)
         (argptr(1, &dataptr, size)<0) ||
         (argint(3, &flags)<0))
         return -1;
-    return lwip_send(s, dataptr, size, flags);
+    //cprintf("Values: %x %x %x", &dataptr, dataptr, (uint)dataptr);
+    memmove(P2V_WO(dataptr), dataptr, size);
+    return lwip_send(s, P2V_WO(dataptr), size, flags);
 }
 
 int sys_sendto(void)
@@ -270,7 +273,8 @@ int sys_sendto(void)
         (argptr(5, &tolen, sizeof(socklen_t))<0) ||
         (argptr(4, &to, *tolen)<0))
         return -1;
-    return lwip_send(s, dataptr, size, flags);
+    cprintf("Values: %x %x %x", &dataptr, dataptr, (uint)dataptr);
+    return lwip_send(s, P2V_WO(dataptr), size, flags);
 }
 
 int sys_socket(void)

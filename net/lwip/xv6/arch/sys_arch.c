@@ -26,7 +26,7 @@ void sys_init() {
 
 int sem_destroy(sys_sem_t sem)
 {
-  cprintf("sem_destroy %x\n", sem->name);
+  //cprintf("sem_destroy %x\n", sem->name);
     assert(sem->waiters == 0);
     return 0;
 }
@@ -34,7 +34,7 @@ int sem_destroy(sys_sem_t sem)
 
 void sem_post(sys_sem_t sem)
 {
-  cprintf("sem_post %x - %d\n", sem->name, sem->val);
+  //cprintf("sem_post %x - %d\n", sem->name, sem->val);
     acquire(&sem->lock);
     sem->val++;
     if ((sem->waiters) && (sem->val > 0))
@@ -46,7 +46,7 @@ void sem_post(sys_sem_t sem)
 
 void sem_wait(sys_sem_t sem)
 {
-  cprintf("sem_wait %x - %d\n", sem->name, sem->val);
+  //cprintf("sem_wait %x - %d\n", sem->name, sem->val);
     acquire(&sem->lock);
     while (sem->val == 0)
     {
@@ -60,7 +60,7 @@ void sem_wait(sys_sem_t sem)
 
 int sem_timedwait(sys_sem_t sem, int timo)
 {
-  cprintf("sem_timedwait %x\n", sem->name);
+  //cprintf("sem_timedwait %x\n", sem->name);
     int ret;
 
     acquire(&sem->lock);
@@ -82,7 +82,7 @@ int sem_timedwait(sys_sem_t sem, int timo)
 
 int sem_trywait(sys_sem_t *sem)
 {
-  cprintf("sem_trywait %x\n", (*sem)->name);
+  //cprintf("sem_trywait %x\n", (*sem)->name);
     int ret;
 
     acquire(&(*sem)->lock);
@@ -99,7 +99,7 @@ int sem_trywait(sys_sem_t *sem)
 
 int sem_value(sys_sem_t *sem)
 {
-  cprintf("sem_value %x\n", sem);
+  //cprintf("sem_value %x\n", sem);
     int ret;
 
     acquire(&(*sem)->lock);
@@ -115,7 +115,7 @@ int sem_size()
 
 err_t sys_sem_new(sys_sem_t *sem, u8_t count)
 {
-  cprintf("sys_sem_new %x - %d\n", next_name, count);
+  //cprintf("sys_sem_new %x - %d\n", next_name, count);
   *sem = (sys_sem_t) kalloc();//malloc(sem_size());
   assert(count >= 0);
   initlock(&(*sem)->lock, "sem lock");
@@ -123,14 +123,14 @@ err_t sys_sem_new(sys_sem_t *sem, u8_t count)
   (*sem)->valid = 1;
   (*sem)->waiters = 0;
   (*sem)->name = next_name++;
-  cprintf("exit sys_sem_new %x - %d\n", (*sem)->name, (*sem)->val);
+  //cprintf("exit sys_sem_new %x - %d\n", (*sem)->name, (*sem)->val);
   return 0;
 }
 
 void sys_sem_free(sys_sem_t *sem)
 {
   if (sem) {
-    cprintf("sys_sem_free %x\n", (*sem)->name);
+    //cprintf("sys_sem_free %x\n", (*sem)->name);
     sem_destroy(*sem);
   }
 }
@@ -138,14 +138,14 @@ void sys_sem_free(sys_sem_t *sem)
 void sys_sem_signal(sys_sem_t *sem)
 {
   if (sem) {
-    cprintf("sys_sem_signal %x\n", (*sem)->name);
+    //cprintf("sys_sem_signal %x\n", (*sem)->name);
     sem_post(*sem);
   }
 }
 
 u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
 {
-  cprintf("sys_arch_sem_wait %x for %x\n", (*sem)->name, timeout);
+  //cprintf("sys_arch_sem_wait %x for %x\n", (*sem)->name, timeout);
   if (!sem)
     return -1;
 
@@ -179,7 +179,7 @@ struct mbox {
 
 err_t sys_mbox_new(sys_mbox_t *rmbox, int size)
 {
-  cprintf("sys_mbox_new\n");
+  //cprintf("sys_mbox_new\n");
   sys_mbox_t mbox = (sys_mbox_t) kalloc();// malloc(sem_size());
   if (!mbox)
     return -2;
@@ -200,21 +200,22 @@ err_t sys_mbox_new(sys_mbox_t *rmbox, int size)
 
 void sys_mbox_free(sys_mbox_t *rmbox)
 {
-  cprintf("sys_mbox_free\n");
+  //cprintf("sys_mbox_free\n");
   if (!rmbox)
     return;
   sys_mbox_t mbox = *rmbox;
   acquire(&mbox->lock);
     sem_destroy(mbox->free);
     sem_destroy(mbox->queued);
-    if (mbox->count != 0)
-        cprintf("sys_mbox_free: Warning: mbox not free\n");
+    if (mbox->count != 0) {
+      //cprintf("sys_mbox_free: Warning: mbox not free\n");
+    }
     release(&mbox->lock);
 }
 
 void sys_mbox_post(sys_mbox_t *rmbox, void *msg)
 {
-  cprintf("sys_mbox_post\n");
+  //cprintf("sys_mbox_post\n");
   if (!rmbox)
     return;
   sys_mbox_t mbox = *rmbox;
@@ -238,7 +239,7 @@ void sys_mbox_post(sys_mbox_t *rmbox, void *msg)
 
 err_t sys_mbox_trypost(sys_mbox_t *rmbox, void *msg)
 {
-  cprintf("sys_mbox_trypost\n");
+  //cprintf("sys_mbox_trypost\n");
   if (!rmbox)
     return -2;
   sys_mbox_t mbox = *rmbox;
@@ -264,9 +265,9 @@ err_t sys_mbox_trypost(sys_mbox_t *rmbox, void *msg)
 
 u32_t sys_arch_mbox_fetch(sys_mbox_t *rmbox, void **msg, u32_t timeout)
 {
-  cprintf("sys_mbox_fetch\n");
+  //cprintf("sys_mbox_fetch\n");
   if (!rmbox)
-    return -1;
+    return SYS_ARCH_TIMEOUT;
   sys_mbox_t mbox = *rmbox;
     u32_t waited = sys_arch_sem_wait(&mbox->queued, timeout);
     acquire(&mbox->lock);
@@ -280,7 +281,7 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *rmbox, void **msg, u32_t timeout)
     if (slot == -1)
     {
         release(&mbox->lock);
-        cprintf("fetch failed!\n");
+        //cprintf("fetch failed!\n");
         return SYS_ARCH_TIMEOUT; // XXX panic is not good...
     }
 
@@ -297,9 +298,31 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *rmbox, void **msg, u32_t timeout)
     return waited;
 }
 
-u32_t sys_arch_mbox_tryfetch(sys_mbox_t *mbox, void **msg) {
-  cprintf("sys_arch_mbox_tryfetch\n");
-  return sys_arch_mbox_fetch(mbox, msg, 1);
+u32_t sys_arch_mbox_tryfetch(sys_mbox_t *rmbox, void **msg) {
+  if (!rmbox)
+    return SYS_ARCH_TIMEOUT;
+  sys_mbox_t mbox = *rmbox;
+  acquire(&mbox->lock);
+  
+  int slot = mbox->head;
+  if (slot == -1)
+  {
+        release(&mbox->lock);
+        //cprintf("fetch failed!\n");
+        return SYS_ARCH_TIMEOUT; // XXX panic is not good...
+  }
+  
+  if (msg)
+    *msg = mbox->slots[slot];
+  
+  mbox->head = (slot + 1) % NSLOTS;
+  mbox->count--;
+  if (mbox->count == 0)
+    mbox->head = -1;
+  
+  sem_post(mbox->free);
+  release(&mbox->lock);
+  return SYS_ARCH_TIMEOUT;
 }
 
 sys_thread_t sys_thread_new(const char *name, lwip_thread_fn thread, void *arg, int stacksize, int prio) {

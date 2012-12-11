@@ -7,13 +7,16 @@
 #include "x86.h"
 #include "net/lwip/include/ipv4/lwip/ip_addr.h"
 #include "net/lwip/include/ipv4/lwip/ip.h"
+#include "net/lwip/include/lwip/tcpip.h"
 #include "eth/eth.h"
 
 static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
+extern void memp_init(void);
+extern void mem_init(void);
 extern pde_t *kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
-static void  projethif_init(struct netif *netif);
+extern void  projethif_init(struct netif *netif);
 extern struct netif* netif;
 
 
@@ -55,7 +58,7 @@ main(void)
 
   netif = (struct netif*) kalloc();
 
-  netif_add(netif, &ipaddr, &netmask, &gw, NULL, projethif_init, ip_input);
+  netif_add(netif, &ipaddr, &netmask, &gw, NULL, (netif_init_fn)projethif_init, tcpip_input);
   netif_set_up(netif);
   netif_set_default(netif);
 
