@@ -443,29 +443,52 @@ sys_chdir(void)
 }
 
 int
+process_argv(uint uargv, char * (*argv)[MAXARG])
+{
+  int i;
+  uint uarg;
+
+  memset(*argv, 0, sizeof(*argv));
+  for(i=0; i<MAXARG; i++){
+    if(fetchint(uargv+4*i, (int*)&uarg) < 0)
+      return -1;
+    if(uarg == 0){
+      (*argv)[i] = 0;
+      return 0;;
+    }
+    if(fetchstr(uarg, &(*argv)[i]) < 0)
+      return -1;
+  }
+  return -1;
+}
+
+int
 sys_exec(void)
 {
   char *path, *argv[MAXARG];
-  int i;
-  uint uargv, uarg;
+  uint uargv;
 
   if(argstr(0, &path) < 0 || argint(1, (int*)&uargv) < 0){
     return -1;
   }
-  memset(argv, 0, sizeof(argv));
-  for(i=0;; i++){
-    if(i >= NELEM(argv))
-      return -1;
-    if(fetchint(uargv+4*i, (int*)&uarg) < 0)
-      return -1;
-    if(uarg == 0){
-      argv[i] = 0;
-      break;
-    }
-    if(fetchstr(uarg, &argv[i]) < 0)
-      return -1;
-  }
+  if(process_argv(uargv, &argv) < 0)
+    return -1;
   return exec(path, argv);
+}
+
+int
+sys_fexec(void)
+{
+  struct file *f;
+  char *argv[MAXARG];
+  uint uargv;
+
+  if(argfd(0, 0, &f) < 0 || argint(1, (int*)&uargv) < 0){
+    return -1;
+  }
+  if(process_argv(uargv, &argv) < 0)
+    return -1;
+  return fexec(f->ip, argv);
 }
 
 int

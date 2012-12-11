@@ -8,18 +8,15 @@
 #include "elf.h"
 
 int
-exec(char *path, char **argv)
+fexec(struct inode *ip, char **argv)
 {
   char *s, *last;
   int i, off;
   uint argc, sz, sp, ustack[3+MAXARG+1];
   struct elfhdr elf;
-  struct inode *ip;
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
 
-  if((ip = namei(path)) == 0)
-    return -1;
   ilock(ip);
   pgdir = 0;
 
@@ -77,7 +74,7 @@ exec(char *path, char **argv)
     goto bad;
 
   // Save program name for debugging.
-  for(last=s=path; *s; s++)
+  for(last=s=argv[0]; *s; s++)
     if(*s == '/')
       last = s+1;
   safestrcpy(proc->name, last, sizeof(proc->name));
@@ -98,4 +95,14 @@ exec(char *path, char **argv)
   if(ip)
     iunlockput(ip);
   return -1;
+}
+
+int
+exec(char *path, char **argv)
+{
+  struct inode *ip;
+
+  if ((ip = namei(path)) == 0)
+    return -1;
+  return fexec(ip, argv);
 }

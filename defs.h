@@ -29,6 +29,7 @@ int             ethread(struct inode*, char*, int);
 int             ethwrite(struct inode*, char*, int);
 
 // exec.c
+int             fexec(struct inode*, char**);
 int             exec(char*, char**);
 
 // file.c

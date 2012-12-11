@@ -44,3 +44,4 @@
 #define SYS_forkwithfds 43
 #define SYS_getparentfds 44
 #define SYS_openat 45
+#define SYS_fexec 46

@@ -107,6 +107,7 @@ extern int sys_ioctl(void);
 extern int sys_forkwithfds(void);
 extern int sys_getparentfds(void);
 extern int sys_openat(void);
+extern int sys_fexec(void);
 
 extern int sys_accept(void);
 extern int sys_bind(void);
@@ -155,6 +156,7 @@ static int (*syscalls[])(void) = {
 [SYS_forkwithfds] sys_forkwithfds,
 [SYS_getparentfds] sys_getparentfds,
 [SYS_openat] sys_openat,
+[SYS_fexec] sys_fexec,
 [SYS_socket]  sys_socket,
 [SYS_bind]    sys_bind,
 [SYS_listen]  sys_listen,

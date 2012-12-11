@@ -35,6 +35,7 @@ int ioctl(int, int, void*);
 int forkwithfds(struct fdlist*);
 struct fdlist *getparentfds(void);
 int openat(int dfd, char *path, int mode);
+int fexec(int, char**);
 
 #ifndef socklen_t
 #define socklen_t int
