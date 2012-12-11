@@ -227,8 +227,8 @@ UPROGS=\
 	_tcpecho\
 	_tcpout
 
-fs.img: mkfs script.sh README $(UPROGS)
-	./mkfs fs.img script.sh README $(UPROGS)
+fs.img: mkfs script.sh README secret_password $(UPROGS)
+	./mkfs fs.img script.sh README secret_password $(UPROGS)
 
 -include *.d
 

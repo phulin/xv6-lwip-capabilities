@@ -115,7 +115,7 @@ int
 main(int argc, char *argv[])
 {
   int i;
-  uint rootino, binino, tmpino;
+  uint rootino, binino, tmpino, secretino;
   char buf[512];
   struct dinode din;
 
@@ -161,6 +161,7 @@ main(int argc, char *argv[])
 
   binino = ialloc(T_DIR);
   tmpino = ialloc(T_DIR);
+  secretino = ialloc(T_DIR);
 
   adddir(rootino, ".", rootino);
   adddir(rootino, "..", rootino);
@@ -170,9 +171,12 @@ main(int argc, char *argv[])
   adddir(tmpino, ".", tmpino);
   adddir(tmpino, "..", rootino);
   adddir(rootino, "tmp", tmpino);
+  adddir(secretino, ".", secretino);
+  adddir(secretino, "..", rootino);
+  adddir(rootino, "secret", secretino);
 
   rinode(rootino, &din);
-  din.nlink = xshort(3);
+  din.nlink = xshort(4);
   winode(rootino, &din);
   rinode(binino, &din);
   din.nlink = xshort(2);
@@ -180,6 +184,9 @@ main(int argc, char *argv[])
   rinode(tmpino, &din);
   din.nlink = xshort(2);
   winode(tmpino, &din);
+  rinode(secretino, &din);
+  din.nlink = xshort(2);
+  winode(secretinoo, &din);
 
   for(i = 2; i < argc; i++){
     assert(index(argv[i], '/') == 0);
@@ -190,6 +197,8 @@ main(int argc, char *argv[])
     // in place of system binaries like rm and cat.
     if(argv[i][0] == '_')
       addfile(binino, argv[i] + 1, argv[i]);
+    else if(strstr(argv[i], "secret_") == argv[i])
+      addfile(secretino, argv[i] + 7, argv[i]);
     else
       addfile(rootino, argv[i], argv[i]);
   }
