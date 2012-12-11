@@ -55,6 +55,9 @@ int fork1(void);  // Fork but panics on failure.
 void panic(char*);
 struct cmd *parsecmd(char*);
 
+// Binary file descriptor
+int binfd;
+
 // Execute cmd.  Never returns.
 void
 runcmd(struct cmd *cmd)
@@ -168,6 +171,11 @@ main(void)
       close(fd);
       break;
     }
+  }
+
+  if((binfd = open("/bin", O_RDONLY)) < 0){
+    printf(2, "Couldn't open /bin.\n");
+    exit();
   }
   
   // Read and run input commands.
@@ -469,8 +477,8 @@ parseexec(char **ps, char *es)
     path[i] = cmd->argv[0][i];
   path[i] = '\0';
 
-  if((fd = open(path, O_RDONLY)) < 0){
-    printf(2, "Couldn't open command.\n");
+  if((fd = openat(binfd, path, O_RDONLY)) < 0){
+    printf(2, "Couldn't open command '%s'.\n", path);
     return 0;
   }
   cmd->fd = fd;
