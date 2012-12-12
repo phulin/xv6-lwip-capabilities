@@ -22,4 +22,7 @@ Processes enter capability mode by calling cap\_enter(), a syscall which sets a 
 \section{Challenges}
 Our most crucial challenge was porting the network stack, which took a lot of time, research, and debugging. Luckily, lwip is relatively easy (as network stacks go) to port to new platforms. Doing so required implementing a few operating system primitives which stock xv6 does not have, but this was not terribly difficult. After that, we had to implement the capability system. In capability mode, processes are forced to use only relative paths or to base every filesystem access on a directory file descriptor, as sh does with /bin. We implemented these via the openat syscall. Next, we implemented a networked shell; in our security model, there should be no way for users to escape to other directories on the system, assuming correctness of the capability implementation. For example, we placed a secret file in /secret/password; no remote user should be able to read it. 
 
+\section{Results and further work}
+Our system is a fairly rough prototype; the security model and its implementation have not been rigorously tested and evaluated. Given further time, that would be our first priority. Extending it into a more complete system would require better restrictions on network access, etc, and would need to be implemented on a more full-featured operating system: xv6 simply does not have enough kinds of information to restrict.
+
 \end{document}
