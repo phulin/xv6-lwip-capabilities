@@ -187,6 +187,8 @@ server(void)
   while((client = accept(s, (struct sockaddr *)&sa, &addrlen)) > 0){
     if(fork1() == 0){
       char *newline, *lastseg, *p;
+      chdir("/tmp");
+      cap_enter();
       do {
         len = recv(client, data, sizeof(data), 0);
         data[len] = '\0';
@@ -195,11 +197,38 @@ server(void)
           if(*p == '\n' || *p == '\r'){
             *p = '\0';
             if(strlen(lastseg) > 0){
-              if(fork1() == 0){
-                printf(1, "user %d: --%s--\n", client, lastseg);
-                runcmd(parsecmd(lastseg));
+              char *buf = lastseg;
+              int fd;
+              printf(1, "user %d: --%s--\n", client, lastseg);
+              if(startswith(buf, "cd ")){
+                // Clumsy but will have to do for now.
+                // Chdir has no effect on the parent if run in the child.
+                if(chdir(buf+3) < 0)
+                  printf(2, "cannot cd %s\n", buf+3);
+                continue;
+              }
+              else if(startswith(buf, "run ")){
+                if(fork1() == 0){
+                  if((fd = open(buf + 4, O_RDONLY)) < 0){
+                    printf(2, "cannot open %s\n", buf + 4);
+                    continue;
+                  }
+                  while(strlen(fgets(fd, buf, sizeof(buf))) > 0){
+                    if(strlen(buf) == 1 || buf[0] == '#')
+                      continue;
+                    if(fork1() == 0){
+                      runcmd(parsecmd(buf));
+                    } else {
+                      wait();
+                    }
+                  }
+                }
               } else {
-                wait();
+                if(fork1() == 0){
+                  runcmd(parsecmd(buf));
+                }else{
+                  wait();
+                }
               }
             }
             lastseg = p + 1;
@@ -250,6 +279,7 @@ main(int argc, char **argv)
       continue;
     }
     else if(startswith(buf, "capenter")){
+      printf(1, "entering capability mode\n");
       chdir("/tmp");
       cap_enter();
       continue;

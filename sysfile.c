@@ -442,9 +442,9 @@ sys_chdir(void)
   char *path;
   struct inode *ip;
 
-  if(proc->mode == MODE_CAP && !validate_subpath(path))
-    return -1;
   if(argstr(0, &path) < 0 || (ip = namei(path)) == 0)
+    return -1;
+  if(proc->mode == MODE_CAP && !validate_subpath(path))
     return -1;
   ilock(ip);
   if(ip->type != T_DIR){
