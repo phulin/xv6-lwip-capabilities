@@ -50,13 +50,13 @@ strchr(const char *s, char c)
 }
 
 char*
-gets(char *buf, int max)
+fgets(int fd, char *buf, int max)
 {
   int i, cc;
   char c;
 
   for(i=0; i+1 < max; ){
-    cc = read(0, &c, 1);
+    cc = read(fd, &c, 1);
     if(cc < 1)
       break;
     buf[i++] = c;
@@ -65,6 +65,12 @@ gets(char *buf, int max)
   }
   buf[i] = '\0';
   return buf;
+}
+
+char*
+gets(char *buf, int max)
+{
+  return fgets(0, buf, max);
 }
 
 int
