@@ -5,6 +5,9 @@
 #include "fcntl.h"
 #include "capability.h"
 
+#include "lwip/inet.h"
+#include "lwip/sockets.h"
+
 // Parsed command representation
 #define EXEC  1
 #define REDIR 2
@@ -159,8 +162,53 @@ startswith(char *haystack, char *needle)
   return 1;
 }
 
+void
+server(void)
+{
+  struct sockaddr_in sa;
+  int i, s, client, len;
+  uint addrlen;
+  unsigned char data[16384];
+
+  if((s = socket(PF_INET, SOCK_STREAM, 0)) < 0){
+    printf(1, "socket failure\n");
+    exit();
+  }
+  sa.sin_family = AF_INET;
+  sa.sin_port = htons(80);
+  sa.sin_addr.s_addr = inet_addr("10.0.2.15");
+  len = 1;
+  setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &len, sizeof(int));
+  bind(s, (struct sockaddr *)&sa, sizeof(sa));
+  addrlen = (uint)sizeof(sa);
+  
+  listen(s, 1);
+  while((client = accept(s, (struct sockaddr *)&sa, &addrlen)) > 0){
+    if(fork1() == 0){
+      char *newline, *lastseg, *p;
+      len = recv(client, data, sizeof(data), 0);
+      data[len] = '\0';
+      lastseg = data;
+      for(p = data; *p != '\0'; p++){
+        if(*p == '\n' || *p == '\r'){
+          *p = '\0';
+          if(strlen(lastseg) > 0){
+            printf(1, "running --%s--\n", lastseg);
+            runcmd(parsecmd(lastseg));
+          }
+          lastseg = p + 1;
+        }
+      }
+      sockclose(client);
+    }
+  }
+  sockclose(s);
+  printf(1, "server exiting\n");
+  exit();
+}
+
 int
-main(void)
+main(int argc, char **argv)
 {
   static char buf[100];
   int fd;
@@ -176,6 +224,12 @@ main(void)
   if((binfd = open("/bin", O_RDONLY)) < 0){
     printf(2, "Couldn't open /bin.\n");
     exit();
+  }
+
+  if(argc > 1 && strcmp(argv[1], "--server") == 0){
+    chdir("/tmp");
+    cap_enter();
+    server();
   }
     
   // Read and run input commands.
@@ -212,8 +266,6 @@ main(void)
       }
     } else {
       if(fork1() == 0){
-        chdir("/tmp");
-        cap_enter();
         runcmd(parsecmd(buf));
       }
     }
