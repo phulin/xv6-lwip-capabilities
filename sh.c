@@ -168,7 +168,7 @@ server(void)
   struct sockaddr_in sa;
   int i, s, client, len;
   uint addrlen;
-  unsigned char data[16384];
+  unsigned char data[2048];
 
   if((s = socket(PF_INET, SOCK_STREAM, 0)) < 0){
     printf(1, "socket failure\n");
@@ -186,19 +186,24 @@ server(void)
   while((client = accept(s, (struct sockaddr *)&sa, &addrlen)) > 0){
     if(fork1() == 0){
       char *newline, *lastseg, *p;
-      len = recv(client, data, sizeof(data), 0);
-      data[len] = '\0';
-      lastseg = data;
-      for(p = data; *p != '\0'; p++){
-        if(*p == '\n' || *p == '\r'){
-          *p = '\0';
-          if(strlen(lastseg) > 0){
-            printf(1, "running --%s--\n", lastseg);
-            runcmd(parsecmd(lastseg));
+      do {
+        len = recv(client, data, sizeof(data), 0);
+        data[len] = '\0';
+        lastseg = data;
+        for(p = data; *p != '\0'; p++){
+          if(*p == '\n' || *p == '\r'){
+            *p = '\0';
+            if(strlen(lastseg) > 0){
+              if(fork1() == 0){
+                runcmd(parsecmd(lastseg));
+              } else {
+                wait();
+              }
+            }
+            lastseg = p + 1;
           }
-          lastseg = p + 1;
         }
-      }
+      } while (len > 0)
       sockclose(client);
     }
   }
