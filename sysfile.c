@@ -185,6 +185,11 @@ sys_unlink(void)
   char name[DIRSIZ], *path;
   uint off;
 
+  if(proc->mode == MODE_CAP){
+    cprintf("can't unlink in MODE_CAP\n");
+    return -1;
+  }
+
   if(argstr(0, &path) < 0)
     return -1;
   if((dp = nameiparent(path, name)) == 0)
