@@ -159,11 +159,6 @@ startswith(char *haystack, char *needle)
   return 1;
 }
 
-void
-forkcmd(char *buf)
-{
-}
-
 int
 main(void)
 {
@@ -194,13 +189,12 @@ main(void)
       continue;
     }
     else if(startswith(buf, "capenter")){
+      chdir("/tmp");
       cap_enter();
       continue;
     }
     else if(startswith(buf, "run ")){
       if(fork1() == 0){
-        chdir("/tmp");
-        cap_enter();
         buf[strlen(buf)-1] = 0;
         if((fd = open(buf + 4, O_RDONLY)) < 0){
           printf(2, "cannot open %s\n", buf + 4);
