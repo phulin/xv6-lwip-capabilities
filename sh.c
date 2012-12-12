@@ -192,8 +192,11 @@ main(void)
       cap_enter();
       continue;
     }
-    if(fork1() == 0)
+    if(fork1() == 0){
+      chdir("/tmp");
+      cap_enter();
       runcmd(parsecmd(buf));
+    }
     wait();
   }
   exit();

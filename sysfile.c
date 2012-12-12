@@ -316,36 +316,47 @@ open(char *path, int omode, struct file *basef)
   f->off = 0;
   f->readable = !(omode & O_WRONLY);
   f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
-  if (proc->mode == MODE_CAP && basef != 0) {
-    f->rights = basef->rights;
+  if (proc->mode == MODE_CAP) {
+    if (basef != 0) {
+      f->rights = basef->rights;
+    } else {
+      f->rights = CAP_ALL;
+    }
   }
   return fd;
 }
 
-int
-openat(struct file *df, char *path, int omode)
+static int
+validate_subpath(char *path)
 {
   char *slash, *segment_start;
   char pathdup[512];
-  if (omode & O_CREATE)
-    return -1;
   
   strncpy(pathdup, path, 512);
   pathdup[511] = '\0';
   segment_start = pathdup;
   if (pathdup[0] == '/')
-    return -1;
+    return 0;
   for (slash = pathdup; *slash != '\0'; slash++) {
     if (*slash == '/') {
       *slash = '\0';
 
       if (strncmp(segment_start, "..", DIRSIZ) == 0)
-        return -1;
+        return 0;
 
       segment_start = slash + 1;
     }
   }
+  return 1;
+}
 
+int
+openat(struct file *df, char *path, int omode)
+{
+  if (omode & O_CREATE)
+    return -1;
+  if (!validate_subpath(path))
+    return -1;
   return open(path, omode, df);
 }
 
@@ -429,6 +440,8 @@ sys_chdir(void)
   char *path;
   struct inode *ip;
 
+  if(proc->mode == MODE_CAP && !validate_subpath(path))
+    return -1;
   if(argstr(0, &path) < 0 || (ip = namei(path)) == 0)
     return -1;
   ilock(ip);

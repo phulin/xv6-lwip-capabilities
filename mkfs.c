@@ -200,7 +200,7 @@ main(int argc, char *argv[])
     else if(strstr(argv[i], "secret_") == argv[i])
       addfile(secretino, argv[i] + 7, argv[i]);
     else
-      addfile(rootino, argv[i], argv[i]);
+      addfile(tmpino, argv[i], argv[i]);
   }
 
   fixsize(rootino);
