@@ -159,6 +159,11 @@ startswith(char *haystack, char *needle)
   return 1;
 }
 
+void
+forkcmd(char *buf)
+{
+}
+
 int
 main(void)
 {
@@ -177,7 +182,7 @@ main(void)
     printf(2, "Couldn't open /bin.\n");
     exit();
   }
-  
+    
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
     if(startswith(buf, "cd ")){
@@ -188,14 +193,35 @@ main(void)
         printf(2, "cannot cd %s\n", buf+3);
       continue;
     }
-    if(startswith(buf, "capenter")){
+    else if(startswith(buf, "capenter")){
       cap_enter();
       continue;
     }
-    if(fork1() == 0){
-      chdir("/tmp");
-      cap_enter();
-      runcmd(parsecmd(buf));
+    else if(startswith(buf, "run ")){
+      if(fork1() == 0){
+        chdir("/tmp");
+        cap_enter();
+        buf[strlen(buf)-1] = 0;
+        if((fd = open(buf + 4, O_RDONLY)) < 0){
+          printf(2, "cannot open %s\n", buf + 4);
+          continue;
+        }
+        while(strlen(fgets(fd, buf, sizeof(buf))) > 0){
+          if(strlen(buf) == 1 || buf[0] == '#')
+            continue;
+          if(fork1() == 0){
+            runcmd(parsecmd(buf));
+          } else {
+            wait();
+          }
+        }
+      }
+    } else {
+      if(fork1() == 0){
+        chdir("/tmp");
+        cap_enter();
+        runcmd(parsecmd(buf));
+      }
     }
     wait();
   }
