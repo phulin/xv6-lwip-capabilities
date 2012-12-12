@@ -239,9 +239,6 @@ create(char *path, short type, short major, short minor)
   struct inode *ip, *dp;
   char name[DIRSIZ];
 
-  if (proc->mode == MODE_CAP)
-    panic("create: Can't be used in Capability Mode");
-
   if((dp = nameiparent(path, name)) == 0)
     return 0;
   ilock(dp);
@@ -354,7 +351,7 @@ int
 openat(struct file *df, char *path, int omode)
 {
   if (omode & O_CREATE)
-    return -1;
+    return createat(df, path);
   if (!validate_subpath(path))
     return -1;
   return open(path, omode, df);
@@ -528,16 +525,26 @@ sys_pipe(void)
   return 0;
 }
 
-int sys_createat(void) {
-  int nfd;
-  struct file *df, *f;
+int
+sys_createat(void)
+{
+  struct file *df;
   char* name;
 
   if (argfd(0, 0, &df) < 0)
     return -1;
   if (argstr(1, &name) < 0)
     return -1;
-  
+
+  return createat(df, name);
+}
+
+int
+createat(struct file *df, char *name)
+{
+  int nfd;
+  struct file *f;
+
   if (proc->mode == MODE_CAP)
     if ((df->rights & (CAP_SEEK | CAP_STAT | CAP_WRITE)) != (CAP_SEEK | CAP_STAT | CAP_WRITE))
       return -1;
