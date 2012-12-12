@@ -60,6 +60,7 @@ struct cmd *parsecmd(char*);
 
 // Binary file descriptor
 int binfd;
+int s = -1;
 
 // Execute cmd.  Never returns.
 void
@@ -166,9 +167,9 @@ void
 server(void)
 {
   struct sockaddr_in sa;
-  int i, s, client, len;
+  int i, client, len;
   uint addrlen;
-  unsigned char data[2048];
+  unsigned char data[1024];
 
   if((s = socket(PF_INET, SOCK_STREAM, 0)) < 0){
     printf(1, "socket failure\n");
@@ -195,6 +196,7 @@ server(void)
             *p = '\0';
             if(strlen(lastseg) > 0){
               if(fork1() == 0){
+                printf(1, "user %d: --%s--\n", client, lastseg);
                 runcmd(parsecmd(lastseg));
               } else {
                 wait();
@@ -203,7 +205,7 @@ server(void)
             lastseg = p + 1;
           }
         }
-      } while (len > 0)
+      } while (len > 0);
       sockclose(client);
     }
   }
